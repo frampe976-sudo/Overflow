@@ -53,7 +53,7 @@ section.grp { background: var(--slab); border: 1px solid var(--line); border-rad
 <div class="wrap">
   <header>
     <h1>Salle d'<span>armes</span></h1>
-    <p>Les nouvelles animations de combat, jouées avec le squelette et le moteur d'animation du jeu. Glissez sur la scène pour tourner autour du personnage.</p>
+    <p>Les nouvelles animations de combat, jouées avec le squelette et le moteur d'animation du jeu. Glissez sur la scène pour tourner autour du personnage ; décochez « Passe de style » pour comparer avec les poses clés brutes.</p>
   </header>
   <div class="main">
     <div class="stage">
@@ -66,6 +66,8 @@ section.grp { background: var(--slab); border: 1px solid var(--line); border-rad
         <span class="sep"></span>
         <button data-cam="front">Face</button><button data-cam="side">Profil</button><button data-cam="q" aria-pressed="true">¾</button>
         <label><input type="checkbox" id="trail" checked> Traînée</label>
+        <label><input type="checkbox" id="style" checked> Passe de style</label>
+        <label><input type="checkbox" id="stop" checked> Arrêt sur impact</label>
       </div>
     </div>
     <aside id="list"></aside>
@@ -278,12 +280,16 @@ function draw(dt) {
   }
 }
 const lerp3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
-let last = performance.now();
+let last = performance.now(), freeze = 0;
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (camGoal) { cam.yaw += wrapAngle(camGoal[0] - cam.yaw) * Math.min(1, dt * 8); cam.pitch += (camGoal[1] - cam.pitch) * Math.min(1, dt * 8); }
   if (playing && seq.length) {
-    st += dt * speed; const s = seq[si], wait = si === seq.length - 1 ? seq.after : (s.gap || GAP);
+    const s0 = seq[si], before = st;
+    if (freeze > 0) freeze -= dt; else st += dt * speed;
+    // hit-stop: the game freezes the blow for a few hundredths of a second when it lands (Game.hitstop)
+    if (document.getElementById('stop').checked && before < s0.hit && st >= s0.hit) { st = s0.hit; freeze = (ATK[s0.atk] && ATK[s0.atk].dmg > 18 ? 0.075 : 0.045) / Math.max(0.25, speed); }
+    const s = seq[si], wait = si === seq.length - 1 ? seq.after : (s.gap || GAP);
     if (st > s.dur + wait) { st = 0; si = (si + 1) % seq.length; if (si === 0) trail.length = 0; }
   }
   draw(dt); requestAnimationFrame(frame);
@@ -309,6 +315,7 @@ for (const G of GROUPS) {
   }
   list.appendChild(sec);
 }
+document.getElementById('style').onchange = e => { AnimFantasy.style = e.target.checked; trail.length = 0; };
 document.getElementById('play').onclick = e => { playing = !playing; e.target.textContent = playing ? 'Pause' : 'Lecture'; e.target.setAttribute('aria-pressed', playing); };
 document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { speed = +b.dataset.sp; document.querySelectorAll('[data-sp]').forEach(x => x.setAttribute('aria-pressed', x === b)); });
 document.querySelectorAll('[data-cam]').forEach(b => b.onclick = () => { camGoal = CAMS[b.dataset.cam]; document.querySelectorAll('[data-cam]').forEach(x => x.setAttribute('aria-pressed', x === b)); });

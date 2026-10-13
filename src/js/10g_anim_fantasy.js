@@ -29,17 +29,17 @@ const FANTASY_CLIPS = {
     [0.68, { shR: [-1.15, -0.95, -0.9], elR: [-0.4], chest: [0.1, -0.9, 0.08], spine: [0.15, -0.42, 0.04], hips: [0.06, -0.42, 0], P: [0, -0.07, 0.06] }],
     [1, {}]] },
   // fendoir : grand coup vertical à deux mains, le buste plonge avec l'arme
-  cleave: { hitU: 0.58, cat: 'heavy', grip2: 0.16, keys: [[0, {}],
+  cleave: { hitU: 0.58, ground: true, cat: 'heavy', grip2: 0.16, keys: [[0, {}],
     [0.38, { shR: [-3.0, 0.1, -0.3], elR: [-1.3], shL: [-2.9, -0.1, 0.3], elL: [-1.3], spine: [-0.3], chest: [-0.12], head: [0.15], P: [0, 0.03, -0.04] }],
     [0.58, { haR: [-0.55], shR: [-1.2, 0.05, -0.1], elR: [-0.1], shL: [-1.2, -0.05, 0.1], elL: [-0.15], spine: [0.7], chest: [0.2], head: [-0.3], P: [0, -0.25, 0.12] }],
-    [0.78, { haR: [-0.55], shR: [-0.75, 0.05, -0.1], elR: [-0.15], shL: [-0.75, -0.05, 0.1], elL: [-0.2], spine: [0.72], chest: [0.2], head: [-0.3], P: [0, -0.27, 0.11] }],
+    [0.78, { haR: [-0.6], shR: [-1.05, 0.05, -0.1], elR: [-0.15], shL: [-1.05, -0.05, 0.1], elL: [-0.2], spine: [0.72], chest: [0.2], head: [-0.3], P: [0, -0.27, 0.11] }],
     [1, {}]] },
   // frappe bondissante : accroupi, saut l'arme au-dessus de la tête, réception genou en avant
-  leapSlam: { hitU: 0.62, cat: 'heavy', legs: 'LR', grip2: 0.16, keys: [[0, {}],
+  leapSlam: { hitU: 0.62, ground: true, cat: 'heavy', legs: 'LR', grip2: 0.16, keys: [[0, {}],
     [0.2, { hipL: [-0.9, 0, 0.08], knL: [1.6], anL: [-0.7], hipR: [-0.9, 0, -0.08], knR: [1.6], anR: [-0.7], spine: [0.35], shR: [-0.4, 0, -0.4], elR: [-1.2], shL: [-0.4, 0, 0.4], elL: [-1.2], P: [0, -0.25, -0.02] }],
     [0.42, { hipL: [-0.75, 0, 0.06], knL: [1.3], anL: [0.2], hipR: [-0.3, 0, -0.06], knR: [0.9], anR: [0.3], spine: [-0.35], chest: [-0.15], head: [0.15], shR: [-3.0, 0, -0.35], elR: [-0.6], shL: [-3.0, 0, 0.35], elL: [-0.6], P: [0, 0.35, 0.06] }],
     [0.62, { haR: [-0.55], hipL: [-1.3, 0, 0.1], knL: [2.0], anL: [-0.7], hipR: [0.2, 0, -0.1], knR: [1.55], anR: [0.4], spine: [0.75], chest: [0.22], head: [-0.3], shR: [-1.2, 0, -0.1], elR: [-0.1], shL: [-1.2, 0, 0.1], elL: [-0.1], P: [0, -0.4, 0.1] }],
-    [0.84, { haR: [-0.55], hipL: [-1.25, 0, 0.1], knL: [1.95], anL: [-0.7], hipR: [0.15, 0, -0.1], knR: [1.5], anR: [0.4], spine: [0.7], chest: [0.2], head: [-0.25], shR: [-0.85, 0, -0.1], elR: [-0.2], shL: [-0.85, 0, 0.1], elL: [-0.2], P: [0, -0.38, 0.09] }],
+    [0.84, { haR: [-0.55], hipL: [-1.25, 0, 0.1], knL: [1.95], anL: [-0.7], hipR: [0.15, 0, -0.1], knR: [1.5], anR: [0.4], spine: [0.7], chest: [0.2], head: [-0.25], shR: [-1.1, 0, -0.1], elR: [-0.2], shL: [-1.1, 0, 0.1], elL: [-0.2], P: [0, -0.38, 0.09] }],
     [1, {}]] },
   // coup remontant (marteau) : l'arme part basse à gauche et monte haut à droite
   upswing: { hitU: 0.5, cat: 'heavy', grip2: 0.16, keys: [[0, {}],
@@ -82,10 +82,10 @@ const FANTASY_CLIPS = {
 
   /* ----- bâton ----- */
   // fauchage bas : accroupi, le bâton rase le sol de droite à gauche
-  staffSweep: { hitU: 0.5, cat: 'staff', grip2: 0.5, keys: [[0, {}],
+  staffSweep: { hitU: 0.5, ground: true, cat: 'staff', grip2: 0.5, keys: [[0, {}],
     [0.3, { shR: [-0.7, -0.5, -0.6], elR: [-0.9], shL: [-0.9, -0.6, 0.1], elL: [-1.0], chest: [0.1, -0.75, 0.05], spine: [0.3, -0.35, 0], hips: [0.1, -0.4, 0], P: [0, -0.18, -0.03] }],
-    [0.5, { haR: [-0.6], shR: [-0.9, 0.6, -0.4], elR: [-0.15], shL: [-0.8, 0.7, 0.4], elL: [-0.6], chest: [0.2, 0.7, -0.08], spine: [0.4, 0.35, -0.04], hips: [0.12, 0.38, 0], P: [0, -0.26, 0.06] }],
-    [0.7, { haR: [-0.6], shR: [-0.8, 0.8, -0.3], elR: [-0.2], shL: [-0.7, 1.0, 0.4], elL: [-0.6], chest: [0.2, 0.85, -0.08], spine: [0.38, 0.4, -0.04], hips: [0.1, 0.42, 0], P: [0, -0.24, 0.05] }],
+    [0.5, { haR: [-0.95], shR: [-0.9, 0.6, -0.4], elR: [-0.15], shL: [-0.8, 0.7, 0.4], elL: [-0.6], chest: [0.2, 0.7, -0.08], spine: [0.4, 0.35, -0.04], hips: [0.12, 0.38, 0], P: [0, -0.26, 0.06] }],
+    [0.7, { haR: [-0.95], shR: [-0.8, 0.8, -0.3], elR: [-0.2], shL: [-0.7, 1.0, 0.4], elL: [-0.6], chest: [0.2, 0.85, -0.08], spine: [0.38, 0.4, -0.04], hips: [0.1, 0.42, 0], P: [0, -0.24, 0.05] }],
     [1, {}]] },
   // moulinet : le bâton tourne au-dessus de la tête puis frappe à l'horizontale (spin)
   staffTwirl: { hitU: 0.45, cat: 'staff', spin: true, grip2: 0.5, keys: [[0, {}],
@@ -102,11 +102,11 @@ const FANTASY_CLIPS = {
     [0.8, { hipL: [-0.1, 0, 0.14], knL: [0.2], hipR: [-0.1, 0, -0.14], knR: [0.2], spine: [-0.22], chest: [-0.15], head: [-0.3], shL: [-1.8, 0, 1.1], elL: [-0.3], shR: [-1.8, 0, -1.1], elR: [-0.3], P: [0, 0.02, 0] }],
     [1, {}]] },
   // Dénouement : bond, l'arme levée à deux mains, réception un genou à terre en la plantant
-  fateshift: { hitU: 0.6, cat: 'fate', legs: 'LR', grip2: 0.16, keys: [[0, {}],
+  fateshift: { hitU: 0.6, ground: true, cat: 'fate', legs: 'LR', grip2: 0.16, keys: [[0, {}],
     [0.15, { hipL: [-0.85, 0, 0.1], knL: [1.5], anL: [-0.65], hipR: [-0.85, 0, -0.1], knR: [1.5], anR: [-0.65], spine: [0.45], shR: [0.2, 0, -0.35], elR: [-1.3], haR: [-0.7], shL: [0.2, 0, 0.35], elL: [-1.3], P: [0, -0.22, 0] }],
     [0.38, { hipL: [-1.2, 0, 0.08], knL: [1.8], anL: [0.2], hipR: [-0.9, 0, -0.08], knR: [1.6], anR: [0.2], spine: [-0.2], head: [0.2], shR: [-3.05, 0.2, -0.05], elR: [-0.3], shL: [-3.05, -0.2, 0.05], elL: [-0.3], P: [0, 0.45, 0.05] }],
     [0.6, { haR: [-0.3], hipL: [-1.45, 0, 0.08], knL: [2.1], anL: [-0.65], hipR: [0.1, 0, -0.08], knR: [1.7], anR: [0.6], spine: [0.65], chest: [0.2], head: [-0.25], shR: [-1.0, 0.25, 0], elR: [-0.05], shL: [-1.0, -0.25, 0], elL: [-0.05], P: [0, -0.5, 0.05] }],
-    [0.85, { haR: [-0.3], hipL: [-1.42, 0, 0.08], knL: [2.08], anL: [-0.66], hipR: [0.08, 0, -0.08], knR: [1.68], anR: [0.6], spine: [0.6], chest: [0.18], head: [-0.15], shR: [-0.9, 0.25, 0], elR: [-0.1], shL: [-0.9, -0.25, 0], elL: [-0.1], P: [0, -0.49, 0.05] }],
+    [0.85, { haR: [-0.3], hipL: [-1.42, 0, 0.08], knL: [2.08], anL: [-0.66], hipR: [0.08, 0, -0.08], knR: [1.68], anR: [0.6], spine: [0.6], chest: [0.18], head: [-0.15], shR: [-1.05, 0.25, 0], elR: [-0.1], shL: [-1.05, -0.25, 0], elL: [-0.1], P: [0, -0.49, 0.05] }],
     [1, {}]] },
 
   /* ----- épée longue (une main) ----- */
@@ -169,7 +169,7 @@ const FANTASY_CLIPS = {
     [0.7, { shR: [-1.35, 0.6, -0.35], elR: [-0.25], shL: [-1.35, 1.0, 0.6], elL: [-0.25], chest: [0.08, 0.6, -0.05], spine: [0.12, 0.3, 0], hips: [0.05, 0.32, 0], P: [0, -0.07, 0.05] }],
     [1, {}]] },
   // nova (fin à pause) : sceptre levé à deux mains puis planté au sol, onde autour
-  scepterNova: { hitU: 0.6, cat: 'scepter', grip2: 0.14, keys: [[0, {}],
+  scepterNova: { hitU: 0.6, ground: true, cat: 'scepter', grip2: 0.14, keys: [[0, {}],
     [0.35, { shR: [-3.0, 0.2, -0.15], elR: [-0.4], haR: [-0.3], shL: [-3.0, -0.2, 0.15], elL: [-0.5], spine: [-0.25], chest: [-0.12], head: [0.3], P: [0, 0.04, 0] }],
     [0.6, { shR: [-0.6, 0.15, -0.1], elR: [-0.2], haR: [0.1], shL: [-0.6, -0.15, 0.1], elL: [-0.3], spine: [0.55], chest: [0.15], head: [-0.2], P: [0, -0.3, 0.04] }],
     [0.8, { shR: [-0.55, 0.15, -0.1], elR: [-0.25], haR: [0.1], shL: [-0.55, -0.15, 0.1], elL: [-0.35], spine: [0.55], chest: [0.15], head: [-0.15], P: [0, -0.3, 0.04] }],
@@ -217,7 +217,76 @@ function fantasyGrip(C, u, O) {
   if (w < 1) ix.forEach((k, j) => { O[k] = q0[j] + (O[k] - q0[j]) * w; });
 }
 
-for (const k in FANTASY_CLIPS) { CLIP_DEFS[k] = FANTASY_CLIPS[k]; CLIPS2[k] = makeClip(FANTASY_CLIPS[k]); }
+/* ---------- passe de style ----------
+   Les clips sont écrits en poses clés simples (armé, impact, accompagnement) ; une spline monotone entre ces poses
+   freine l'arme juste avant l'impact (13 % de sa vitesse de pointe en moyenne). La passe de style, appliquée à
+   l'enregistrement, reprend les principes des jeux d'action :
+   · armé chargé : l'arme recule encore un peu puis part tard, l'accélération se fait juste avant l'impact ;
+   · sortie rapide : l'arme traverse la cible, l'accompagnement dépasse sa pose puis revient (follow-through) ;
+   · coups vers le sol (ground) : l'arme s'arrête net sur le sol au lieu de le traverser ;
+   · articulations en cascade : hanches, buste, épaule, coude puis poignet partent les uns après les autres
+     et la tête suit en retard (fantasyEval, à l'évaluation). Le poids de l'arme règle chaque effet. */
+const STYLE = {
+  fists: { coil: 0.08, over: 0.08, drag: 0.8 }, heavy: { coil: 0.12, over: 0.14, drag: 1.3 }, dagger: { coil: 0.05, over: 0.06, drag: 0.6 },
+  sword: { coil: 0.08, over: 0.1, drag: 1 }, greatsword: { coil: 0.12, over: 0.14, drag: 1.3 }, staff: { coil: 0.08, over: 0.1, drag: 1 },
+  scepter: { coil: 0.06, over: 0.08, drag: 0.8 }, shield: { coil: 0.06, over: 0.06, drag: 0.8 }, fate: { coil: 0.1, over: 0.1, drag: 1 }
+};
+// how far ahead (-) or behind (+) of the clip each joint moves, in clip time, before the weight factor
+const LEAD = { P: -0.045, hips: -0.05, spine: -0.035, chest: -0.02, head: 0.035, elL: 0.015, elR: 0.015, haL: 0.03, haR: 0.03 };
+// a key between A and B (s = 0 → A, 1 → B, beyond → past them). A value missing from a key means « the base pose »,
+// which is not known here: the new key then copies the value of the key it is closer to, or leaves it to the base too
+function mixKey(A, B, s) {
+  const o = {}, near = s < 0.5 ? A : B;
+  for (const j of new Set([...Object.keys(A), ...Object.keys(B)])) {
+    const a = A[j] || [], b = B[j] || [], c = near[j] || [], v = [];
+    for (let i = 0; i < Math.max(a.length, b.length); i++) v.push(a[i] !== undefined && b[i] !== undefined ? a[i] + (b[i] - a[i]) * s : c[i]);
+    // elbows and knees never bend backwards, however far the key is pushed
+    if (/^el/.test(j) && v[0] !== undefined) v[0] = Math.min(v[0], -0.02);
+    if (/^kn/.test(j) && v[0] !== undefined) v[0] = Math.max(v[0], 0.02);
+    if (v.some(x => x !== undefined)) o[j] = v;
+  }
+  return o;
+}
+const isRest = k => k === 'S' || Object.keys(k).length === 0;
+function stylize(def) {
+  const S = STYLE[def.cat] || STYLE.sword, keys = def.keys.map(k => [k[0], k[1]]), h = keys.findIndex(k => k[0] === def.hitU);
+  if (h < 1) return Object.assign({}, def, { drag: S.drag });
+  const W = keys[h - 1], H = keys[h], F = keys[h + 1], out = keys.slice(0, h - 1);
+  out.push(W);
+  const C = isRest(W[1]) ? W : [W[0] + (H[0] - W[0]) * 0.5, mixKey(W[1], H[1], -S.coil)];   // coil: slow start, late whip
+  if (C !== W) out.push(C);
+  out.push(H);
+  if (F && !isRest(F[1])) {
+    // the blade keeps its speed through the target: every joint carries on in its strike direction a little while
+    const te = (F[0] - H[0]) * 0.2, e = def.ground ? 0.04 : clamp(te / Math.max(0.02, H[0] - C[0]), 0.1, 0.5);
+    out.push([H[0] + te, isRest(C[1]) ? mixKey(H[1], F[1], 0.5) : mixKey(C[1], H[1], 1 + e)]);
+    out.push([F[0], def.ground ? F[1] : Object.assign({}, F[1], mixKey(H[1], F[1], 1 + S.over))]); // overshoot past the follow pose (not into the ground)
+    out.push(...keys.slice(h + 2));
+  } else out.push(...keys.slice(h + 1));
+  return Object.assign({}, def, { keys: out, drag: def.ground ? S.drag * 0.4 : S.drag });
+}
+function laggedClip(def) {
+  const C = makeClip(def);
+  for (const c of C.chans) c.lag = LEAD[c.idx >= NANG ? 'P' : BONES[Math.floor(c.idx / 3)][0]] || 0;
+  return C;
+}
+// clipEval with each channel shifted in time by its lag (successive breaking of joints)
+function fantasyEval(C, u, B, O, w = 1) {
+  const t = C.times, n = C.n, D = C.drag || 0;
+  for (let j = 0; j < C.chans.length; j++) {
+    const c = C.chans[j], uc = clamp(u + c.lag * -D, 0, 1);
+    let k = 0; while (k < n - 2 && t[k + 1] <= uc) k++;
+    const hk = Math.max(1e-5, t[k + 1] - t[k]), s = clamp((uc - t[k]) / hk, 0, 1), s2 = s * s, s3 = s2 * s;
+    const bv = c.add ? 0 : B[c.idx];
+    const v = (2 * s3 - 3 * s2 + 1) * _kv(c, k, bv) + (s3 - 2 * s2 + s) * hk * _kt(c, t, k, n, bv) + (-2 * s3 + 3 * s2) * _kv(c, k + 1, bv) + (s3 - s2) * hk * _kt(c, t, k + 1, n, bv);
+    const full = c.add ? B[c.idx] + v : v;
+    O[c.idx] = w >= 1 ? full : B[c.idx] + (c.idx < NANG ? wrapAngle(full - B[c.idx]) : full - B[c.idx]) * w;
+  }
+}
+for (const k in FANTASY_CLIPS) {
+  const D = stylize(FANTASY_CLIPS[k]); CLIP_DEFS[k] = D; CLIPS2[k] = laggedClip(D);
+  CLIPS2[k].raw = makeClip(FANTASY_CLIPS[k]);   // the clip before the style pass, to compare
+}
 
 /* ---------- branchement (à l'intégration) ----------
    SWAP : les attaques du Destin gardent leurs réglages et prennent leur nouveau clip.
@@ -226,6 +295,7 @@ for (const k in FANTASY_CLIPS) { CLIP_DEFS[k] = FANTASY_CLIPS[k]; CLIPS2[k] = ma
 const AnimFantasy = {
   CLIPS: FANTASY_CLIPS,
   clip: name => CLIPS2[name],
+  style: true, // false: the clips as authored, without the style pass (to compare)
   SWAP: { p_upper: 'uppercut', p_shove: 'palmBurst', p_swing2: 'backhand', p_overhead: 'cleave', p_slam: 'leapSlam',
     p_stab2: 'reverseStab', p_slash: 'diagSlash', p_flurry: 'bladeDance', p_staff2: 'staffSweep', p_staff3: 'staffTwirl' },
   ATK: {
@@ -274,7 +344,16 @@ const AnimFantasy = {
     Object.assign(ATK, this.ATK);
     if (typeof COMBOS !== 'undefined') for (const k in this.COMBOS) COMBOS[weaponIds[k] || k] = this.COMBOS[k];
     // the two-handed clips put the left hand on the handle right after the clip is evaluated
-    if (!clipEval.fantasy) { const base = clipEval; clipEval = function (C, u, B, O, w) { base(C, u, B, O, w); if (C.grip2) fantasyGrip(C, clamp(u, 0, 1), O); }; clipEval.fantasy = true; }
+    // the new clips go through fantasyEval (lagged joints), and the two-handed ones put the left hand on the handle
+    if (!clipEval.fantasy) {
+      const base = clipEval;
+      clipEval = function (C, u, B, O, w) {
+        if (!C.raw) return base(C, u, B, O, w);
+        if (AnimFantasy.style) fantasyEval(C, u, B, O, w); else base(C.raw, u, B, O, w);
+        if (C.grip2) fantasyGrip(C, clamp(u, 0, 1), O);
+      };
+      clipEval.fantasy = true;
+    }
     return true;
   }
 };
