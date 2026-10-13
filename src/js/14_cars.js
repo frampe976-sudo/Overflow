@@ -53,8 +53,8 @@ const Cars = {
     // one model per type: paint (the instance colour paints it; glossy, mirrors the sky), glass, trim, head and tail lamps
     this.models = {}; this.modelsFar = {};
     for (const t in CTYPES) for (const far of [false, true]) { // a detailed model for the cars near the camera, a light one for the others
-      const G = CarModels.build(t, far), R = { lampF: G.lampF, lampR: G.lampR, wz: G.wz };
-      for (const [k, mat] of [['paint', [70, 1.0, 0.45, 0.55]], ['glass', [110, 1.6, 0.35, 1.0]], ['trim', [40, 0.6, 0.3, 0.25]], ['head', [20, 0.3, 0.2, 0]], ['tail', [20, 0.3, 0.2, 0]]]) { if (far && k === 'trim') continue; const it = new Instanced(G[k], 48); it.mat = mat; R[k] = it; Render.inst.push(it); }
+      const G = CarModels.build(t, far), R = { lampF: G.lampF, lampR: G.lampR, wz: G.wz, wzo: G.wzo || 0, wy: G.wy || 0.34, cart: !!G.cart };
+      for (const [k, mat] of G.cart ? [['paint', [12, 0.12, 0.3, 0]], ['glass', [40, 0.4, 0.3, 0.2]], ['trim', [14, 0.15, 0.3, 0]], ['head', [20, 0.3, 0.2, 0]], ['tail', [20, 0.3, 0.2, 0]]] : [['paint', [70, 1.0, 0.45, 0.55]], ['glass', [110, 1.6, 0.35, 1.0]], ['trim', [40, 0.6, 0.3, 0.25]], ['head', [20, 0.3, 0.2, 0]], ['tail', [20, 0.3, 0.2, 0]]]) { if (far && k === 'trim' && !G.cart) continue; const it = new Instanced(G[k], 48); it.mat = mat; R[k] = it; Render.inst.push(it); }
       (far ? this.modelsFar : this.models)[t] = R;
     }
     this.buildGraph();
@@ -154,13 +154,13 @@ const Cars = {
     } else { if (eng) eng.set(0, 0, 0); const sc = Snd.loop('screech'); if (sc) sc.set(0); const sl = Snd.loop('siren'); if (sl) sl.set(false, 0); }
     // siren light
     // (a smooth red / blue sweep, about 1.4 swaps a second: no hard strobe)
-    for (const c of this.list) if (c.siren && dist3(c.pos, Cam.pos) < 60) { const k = sirenK(); Lights.add(c.pos.x, c.pos.y + 1.9, c.pos.z, 0.25 + 1.75 * k, 0.25 + 0.3 * (1 - k), 0.25 + 1.75 * (1 - k), 12, 0.05, 'siren' + c.id); }
+    for (const c of this.list) if (c.siren && dist3(c.pos, Cam.pos) < 60) { const k = sirenK(); Lights.add(c.pos.x, c.pos.y + 2.2, c.pos.z, 1.2 + 1.2 * k, 0.6 + 0.5 * k, 0.18, 12, 0.05, 'siren' + c.id); }
     // headlights of player car
-    if (pc && !pc.dead) Lights.add(pc.pos.x + pc.fx * 7, pc.pos.y + 0.9, pc.pos.z + pc.fz * 7, 1.5, 1.35, 1.1, 12, 0.05, 'headP');
+    if (pc && !pc.dead) Lights.add(pc.pos.x + pc.fx * 1.5, pc.pos.y + 1.8, pc.pos.z + pc.fz * 1.5, 1.5, 0.95, 0.45, 9, 0.05, 'headP');
     { // the nearest moving car's headlights sweep the street too
       const F = Game.player ? Game.player.pos : Cam.pos; let best = null, bd = 32 * 32;
       for (const c of this.list) { if (c === pc || c.dead || c.removed || c.sinking || Math.abs(c.speed) < 2) continue; const d = (c.pos.x - F.x) ** 2 + (c.pos.z - F.z) ** 2; if (d < bd) { bd = d; best = c; } }
-      if (best) Lights.add(best.pos.x + best.fx * 6.5, best.pos.y + 0.8, best.pos.z + best.fz * 6.5, 1.1, 1.0, 0.85, 10, 0.05, 'headN');
+      if (best) Lights.add(best.pos.x + best.fx * 1.5, best.pos.y + 1.8, best.pos.z + best.fz * 1.5, 1.1, 0.7, 0.32, 8, 0.05, 'headN');
     }
   },
   // a car simulated on another page: placed between the states received, its smoke and flames drawn here
@@ -502,11 +502,11 @@ const Cars = {
       const cr = col[0] * dmgK, cg = col[1] * dmgK, cb = col[2] * dmgK, tk = burnt ? 0.2 : 1;
       const pushBox = (inst, x, y, z, sx, sy, sz, r, g, b, e, rx = 0) => { M4.compose(tmp, x, y, z, rx, 0, 0, sx, sy, sz); inst.pushMul(M, tmp, r, g, b, e); };
       const Lm = this.inst.cLamp, Sh = CAR_SHAPES[c.type];
-      G.paint.push(M, cr, cg, cb, 0); if (near) G.trim.push(M, tk, tk, tk, 0);
-      if (!burnt) G.glass.push(M, 0.05, 0.06, 0.075, 0);
-      G.head.push(M, tk, tk, tk, c.dead ? 0 : 1.6); G.tail.push(M, tk, tk, tk, c.dead ? 0 : 0.8 + c.brakeK * 2.4);
-      if (T.taxi) pushBox(Lm, 0, Sh.roof + 0.12, -0.15, 0.55, 0.17, 0.24, 1, 0.85, 0.3, c.dead ? 0 : 1.8);
-      if (c.police || c.siren) {
+      G.paint.push(M, cr, cg, cb, 0); if (near || G.cart) G.trim.push(M, tk, tk, tk, 0);
+      if (!burnt) G.cart ? G.glass.push(M, 0.25, 0.2, 0.12, 0.6) : G.glass.push(M, 0.05, 0.06, 0.075, 0);
+      G.head.push(M, tk, tk, tk, c.dead ? 0 : G.cart ? 2.2 : 1.6); G.tail.push(M, tk, tk, tk, c.dead || G.cart ? 0 : 0.8 + c.brakeK * 2.4);
+      if (T.taxi && !G.cart) pushBox(Lm, 0, Sh.roof + 0.12, -0.15, 0.55, 0.17, 0.24, 1, 0.85, 0.3, c.dead ? 0 : 1.8);
+      if ((c.police || c.siren) && !G.cart) {
         const sk = sirenK(); const on = c.siren && !c.dead;
         const ry = Sh.roof + 0.135, rz = (Sh.cab[1] + Sh.cab[2]) / 2 * L / 2 - 0.05;
         pushBox(Lm, 0.27, ry, rz, 0.48, 0.07, 0.22, 1, 0.1, 0.12, on ? 0.35 + 2.6 * sk : 0.2);
@@ -516,12 +516,17 @@ const Cars = {
       const wx = W / 2 - 0.1, wz = G.wz, WI = !near ? this.inst.cWheelLo : T.police ? this.inst.cWheelS : this.inst.cWheel, wk = burnt ? 0.15 : 1;
       for (const [sx, sz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
         const steer = sz > 0 ? -c.steerA : 0;
-        M4.compose(tmp, sx * wx, 0.34, sz * wz, sx > 0 ? c.wheelRot : -c.wheelRot, steer + (sx > 0 ? 0 : Math.PI), 0); // turned around, not mirrored (keeps the faces outward)
+        M4.compose(tmp, sx * wx, G.wy, sz * wz + G.wzo, (sx > 0 ? c.wheelRot : -c.wheelRot) * 0.34 / G.wy, steer + (sx > 0 ? 0 : Math.PI), 0); // turned around, not mirrored (keeps the faces outward)
         WI.pushMul(M, tmp, wk, wk, wk, 0);
       }
       const hy = G.lampF[1], ty = G.lampR[1], hx = G.lampF[0], tx = G.lampR[0];
       // headlight beams + ground pools
-      if (!c.dead && d < 90) {
+      if (G.cart) { if (!c.dead && d < 120) for (const s of [-1, 1]) { // the lanterns by the bench: a warm halo, a little light on the ground
+          const lx = G.lampF[0] * s, lz = G.lampF[2], px = c.pos.x + c.fx * lz + c.fz * lx, pz = c.pos.z + c.fz * lz - c.fx * lx;
+          Glare.corona(px, c.pos.y + G.lampF[1], pz, 0.5, 1, 0.66, 0.3, 0.55, 2); if (d < 70) Render.addParticles.push(px, c.pos.y + 0.05, pz, 2.4, 0.5, 0.32, 0.12, 0.3, 0, 1, 0, true);
+          if (c.siren) Glare.corona(c.pos.x, c.pos.y + 2.25, c.pos.z, 1.6, 1, 0.6, 0.2, 0.3 + 0.4 * sirenK(), 2);
+        } }
+      else if (!c.dead && d < 90) {
         for (const s of [-1, 1]) {
           const bx = c.pos.x + c.fx * (L / 2 + 0.1) - c.fz * s * hx, bz = c.pos.z + c.fz * (L / 2 + 0.1) + c.fx * s * hx;
           Render.beams.push(bx, c.pos.y + hy, bz, bx + c.fx * 11, c.pos.y + 0.2, bz + c.fz * 11, 0.9, 0.5, 0.46, 0.38, 0.18, Cam.pos);
@@ -530,7 +535,7 @@ const Cars = {
         Render.addParticles.push(c.pos.x - c.fx * (L / 2 + 1), c.pos.y + 0.05, c.pos.z - c.fz * (L / 2 + 1), 2.2, 0.6, 0.05, 0.05, 0.3 + c.brakeK * 0.5, -c.yaw, 0.6, 0, true);
       }
       // coronas on the lamps, and their long reflections on the wet road
-      if (!c.dead && d < 140) {
+      if (!c.dead && d < 140 && !G.cart) {
         const tcx = Cam.pos.x - c.pos.x, tcz = Cam.pos.z - c.pos.z, tl = Math.hypot(tcx, tcz) || 1;
         const facing = (c.fx * tcx + c.fz * tcz) / tl; // 1 = seen from the front
         const fh = Math.pow(clamp((facing + 0.2) / 1.2, 0, 1), 1.6), ft = Math.pow(clamp((0.2 - facing) / 1.2, 0, 1), 1.6);
