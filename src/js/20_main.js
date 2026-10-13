@@ -364,7 +364,7 @@ const Game = {
   onEscape(a) { if (a.team !== 'civ') { this.addCrime(3); this.tellAll('toast', 'Un suspect s’est enfui', '+3 % criminalité', 'bad'); } },
   onNpcLost(a) { },
   onAlert(a) { Music.target = Math.max(Music.target, 0.7); },
-  onParry(t, src) { HUD.toast('Parade !', 'Contre-attaquez', 'gold', true); if (t === this.player) { this.onPlayerBlocked(src); t.riposteT = 2.5; this.award(50, t.pos, 'PARADE', 'feat'); if (MP.guest && src && src.puppet) MP.send({ t: 'parried', id: src.net }); } },
+  onParry(t, src) { HUD.toast('Parade !', 'Contre-attaquez', 'gold', true); if (t === this.player) { Destin.gain(t, 10); this.onPlayerBlocked(src); t.riposteT = 2.5; this.award(50, t.pos, 'PARADE', 'feat'); if (MP.guest && src && src.puppet) MP.send({ t: 'parried', id: src.net }); } },
   onCarDisabled(c) { },
   // a car the case depends on (the patrol car, the convoy, a vehicle to search…) blows up: the case is lost
   onCarExploded(c) {
@@ -411,7 +411,7 @@ const Game = {
       if (a.removed) continue;
       const d = P ? (multi ? MP.distToRobots(a.pos.x, a.pos.z) : dist2D(a.pos.x, a.pos.z, P.pos.x, P.pos.z)) : 0;
       if (a !== P && d > 150 && !a.tags.keep && !a.inCar && !a.puppet) continue;
-      a.update(a === P ? dtP : dt);
+      a.update(a === P ? dtP : dt * Destin.worldK()); // the Reckoning slows the world, not the robot
       // safety net: a non-finite position is rolled back to the last good one
       if (isFinite(a.pos.x) && isFinite(a.pos.y) && isFinite(a.pos.z)) { const g = a._good || (a._good = new V3()); g.copy(a.pos); }
       else if (a._good) { a.pos.copy(a._good); a.vel.set(0, 0, 0); }
@@ -461,7 +461,7 @@ const Game = {
     const P = this.player, dt = raw;
     for (const a of this.actors) {
       if (a.removed) continue;
-      a.update(a === P ? dtP : dt);
+      a.update(a === P ? dtP : dt * Destin.worldK()); // the Reckoning slows the world, not the robot
       if (a !== P) continue;
       if (isFinite(a.pos.x) && isFinite(a.pos.y) && isFinite(a.pos.z)) { const g = a._good || (a._good = new V3()); g.copy(a.pos); }
       else if (a._good) { a.pos.copy(a._good); a.vel.set(0, 0, 0); }
@@ -597,7 +597,7 @@ const Game = {
     this.last = performance.now(); requestAnimationFrame(t => this.frame(t));
   }
 };
-window.__OF = { MP, QR, COOP, NetActor, Patrol, Lightmap, Music, Amb, Folk, People, Sculpt, Arms, Nades, WEAPONS, Game, World, Input, Cars, Save, Gfx, Render, Cam, CamCtl, HUD, Menus, MISSIONS, PATROL, Pickups, FX, Combat, CharRender, BI, Enemy, Civilian, Snd, TRAINING, Tex, City, Districts, Net, Cull, Lights, Env, Glare, Car, Signals, Kit, CASES, CHAPTERS, Campaign,
+window.__OF = { Destin, TREES, DESTINIES, ATK, spawnEnemy, MP, QR, COOP, NetActor, Patrol, Lightmap, Music, Amb, Folk, People, Sculpt, Arms, Nades, WEAPONS, Game, World, Input, Cars, Save, Gfx, Render, Cam, CamCtl, HUD, Menus, MISSIONS, PATROL, Pickups, FX, Combat, CharRender, BI, Enemy, Civilian, Snd, TRAINING, Tex, City, Districts, Net, Cull, Lights, Env, Glare, Car, Signals, Kit, CASES, CHAPTERS, Campaign,
   test: {
     // run the simulation without rendering (for automated checks)
     step(n, dt, keys, pad) {

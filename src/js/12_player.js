@@ -11,6 +11,7 @@ class Player extends Actor {
     this.maxHp = this.hp = playerMaxHp(S);
     this.maxStamina = this.stamina = 100 * (1 + S.endurance * 0.15);
     this.dmgOut = 1 + S.force * 0.1 + rankK() * 0.015; this.skill = S.adresse;
+    this.idleAtk = 9; Destin.apply(this); // talents, Destinée, jauge de Destin
     this.inv = { melee: null, pistol: { mag: 12, res: 24 }, shotgun: null, rifle: null, ak: null, uzi: null };
     this.nades = 3; this.nadeT = 0;
     this.cur = 'fists'; this.setWeapon(null);
@@ -83,6 +84,9 @@ class Player extends Actor {
     if (I.pressed.reload) this.startReload();
     if (I.pressed.jump) this.jumpBuf = 0.16; else this.jumpBuf -= dt;
     if (I.pressed.dodge) this.rollBuf = 0.25; else this.rollBuf -= dt;
+    if (I.pressed.fate) this.rollBuf = 0; // LB + RB on a pad: the Reckoning, not a roll
+    if (this.atk) this.idleAtk = 0; else this.idleAtk += dt;
+    Destin.update(this, dt);
     this.updateTargeting(dt);
     this.updateThrow(dt); this.updateNade(dt);
     if (this.state === 'down' && this.st > 0.3 && (I.pressed.jump || I.pressed.dodge || I.pressed.punch || I.pressed.kick || I.pressed.block || I.pressed.action)) this.downT = 0; // quick get-up
@@ -187,14 +191,16 @@ class Player extends Actor {
     Snd.play('jump', this.pos, 0.5);
   }
   startRoll(d) {
-    if (this.stamina < 12) return; this.stamina -= 12; this.staminaCd = 0.6;
+    const cost = 12 - (this.fm ? this.fm.rollCost : 0);
+    if (this.stamina < cost) return; this.stamina -= cost; this.staminaCd = 0.6;
     const dx = d.mag > 0.1 ? d.x : this.fwdX(), dz = d.mag > 0.1 ? d.z : this.fwdZ();
     this.rollDirX = dx; this.rollDirZ = dz; this.yaw = Math.atan2(dx, dz); this.rollDur = 0.55;
-    this.setState('roll'); this.iframe = 0.38; this.blocking = false; this.aiming = false; this._pd = false; Snd.play('whoosh', this.pos, 0.5);
+    this.setState('roll'); this.iframe = 0.38 + (this.fm ? this.fm.iframe : 0); this.blocking = false; this.aiming = false; this._pd = false; Snd.play('whoosh', this.pos, 0.5);
   }
   // rolled out of a blow at the last instant: time slows, the robot gets his breath back and a riposte
   perfectDodge(src) {
     this._pd = true; this.riposteT = 2.5; this.stamina = Math.min(this.maxStamina, this.stamina + 35); this.combatT = 6;
+    Destin.gain(this, 15);
     Game.slowmo(0.55, 0.3); Game.award(100, this.pos, 'ESQUIVE PARFAITE', 'feat'); Snd.play('perfect', this.pos, 0.8); Render.post.extraFlash = 0.07;
     FX.ring(this.pos.x, this.pos.y + 0.05, this.pos.z, 1.3, [0.2, 1, 0.75], 0.45); Input.rumble(0.3, 0.5, 140);
   }
@@ -209,8 +215,8 @@ class Player extends Actor {
     const W = this.cur;
     let name;
     if (kind === 'punch') {
-      if (W === 'bat') name = 'batSwing'; else if (W === 'knife') name = 'stab'; else if (this.isFirearm()) name = 'butt';
-      else { name = ['jab', 'cross', 'hook'][this.combo % 3]; }
+      if (this.isFirearm()) name = 'butt';
+      else name = Destin.nextPunch(this); // the weapon's combo chain, or its pause finisher
     } else {
       if (!this.grounded) name = 'airKick';
       else if (this.sprinting && this.speedNow > 5.5) name = 'flyKick';
@@ -227,9 +233,9 @@ class Player extends Actor {
     this.startAttack(name, tg);
     if (name === 'airKick') { this.airKicked = true; this.vel.y = Math.max(this.vel.y, 2.5); this.noGravityT = 0.2; }
     if (name === 'flyKick') { this.vel.y = 3.2; this.grounded = false; }
-    if (kind === 'punch' && !WEAPONS[W || 'fists']?.firearm && W !== 'bat' && W !== 'knife') this.combo++;
-    else if (kind === 'kick' && name === 'spinKick') this.combo = 0;
-    this.comboT = 1.1; this.combatT = 5;
+    if (kind === 'kick' && name === 'spinKick') this.combo = 0;
+    // the chain survives the blow plus the pause window, so a pause combo can still come out
+    this.comboT = ATK[name].dur + PAUSE_MAX + 0.1; this.combatT = 5;
   }
   attackBuffering(dt) {
     const A = this.atk; if (!A) return;
@@ -759,7 +765,7 @@ class Player extends Actor {
       return true;
     }
     if (this.iframe > 0 && this.state === 'roll' && this.st < 0.24 && !this._pd && src && src !== this && (o.kind === 'melee' || o.kind === 'bullet') && !(Game.def && Game.def.training)) this.perfectDodge(src);
-    const K = Game.dmgTaken * (o.kind === 'fall' ? 1 : diffK().dmg);
+    const K = Game.dmgTaken * (o.kind === 'fall' ? 1 : diffK().dmg) * (this.reckT > 0 ? 0.5 : 1);
     if (Game.def && Game.def.training) dmg = Math.min(dmg, Math.max(0, (this.hp - 14) / Math.max(0.05, K)));
     const r = super.takeHit(src, dmg * K, o);
     if (r === true) HUD.damage(src);

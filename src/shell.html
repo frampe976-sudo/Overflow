@@ -474,6 +474,33 @@ body.ride #tb-gas, body.ride #tb-brake, body.ride #tb-hand, body.ride #tb-siren,
 #rotate-hint { display: none; position: fixed; left: 50%; top: calc(10px + var(--safe-t)); transform: translateX(-50%); z-index: 40; background: rgba(8,10,18,0.9); border: 1px solid var(--sodium); color: var(--text); border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; pointer-events: none; white-space: nowrap; }
 @media (orientation: portrait) and (pointer: coarse) { #rotate-hint { display: block; } }
 @media (prefers-reduced-motion: reduce) { .brand { animation: none; } .toast { animation-duration: 3.5s; } }
+/* ---------- Destin: gauge, Reckoning, talents ---------- */
+.bar.fate { height: 4px; margin-top: 4px; }
+.bar.fate > i { background: linear-gradient(90deg, #7a4dff, #c58bff); }
+.bar.fate.full > i { background: linear-gradient(90deg, #b07bff, #ffe1ff); animation: pulse 0.7s infinite; }
+.bar.fate.on > i { background: linear-gradient(90deg, #ff6bd5, #c58bff); }
+#reckvig { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.35s; background: radial-gradient(ellipse at center, transparent 45%, rgba(110,40,200,0.42) 100%); z-index: 1; }
+body.reckoning #reckvig { opacity: 1; }
+#tb-fate { color: #d6b4ff; border-color: rgba(197,139,255,0.7); }
+.dscroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 4px; }
+.trees { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.tree { border: 1px solid var(--line); border-top: 3px solid var(--tc); border-radius: 6px; padding: 10px; background: rgba(255,255,255,0.03); display: flex; flex-direction: column; gap: 6px; }
+.tree h3 { margin: 0 0 2px; font-family: var(--f-display); font-weight: 900; font-size: 22px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--tc); display: flex; justify-content: space-between; }
+.tree h3 b { font-family: var(--f-mono); font-size: 13px; color: var(--muted); font-weight: 600; }
+.btn.tal { text-align: left; font-family: var(--f-ui); font-size: 14px; padding: 7px 10px; display: block; width: 100%; }
+.btn.tal b { font-family: var(--f-display); font-size: 17px; letter-spacing: 0.03em; text-transform: uppercase; }
+.btn.tal .pips { float: right; letter-spacing: 3px; color: var(--tc); }
+.btn.tal small, .btn.dcard small { display: block; color: var(--muted); font-size: 12.5px; text-transform: none; letter-spacing: 0; font-weight: 500; font-family: var(--f-ui); }
+.btn.tal.locked { opacity: 0.45; } .btn.tal.max { border-color: var(--tc); }
+.btn.tal.focus, .btn.tal:hover { border-color: var(--tc); background: rgba(255,255,255,0.08); }
+.dhead { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.2em; color: var(--muted); text-transform: uppercase; margin: 12px 0 6px; }
+.dcards { display: flex; flex-wrap: wrap; gap: 6px; }
+.btn.dcard { font-family: var(--f-ui); font-size: 13px; padding: 6px 10px; text-align: left; max-width: 230px; }
+.btn.dcard b { display: block; font-family: var(--f-display); font-size: 16px; letter-spacing: 0.03em; text-transform: uppercase; }
+.btn.dcard small { color: var(--muted); font-size: 12px; }
+.btn.dcard.sel { border-color: #c58bff; background: rgba(197,139,255,0.14); }
+.btn.dcard.locked { opacity: 0.4; }
+@media (max-width: 720px) { .trees { grid-template-columns: 1fr; } }
 </style>
 
 <canvas id="gl" tabindex="0" aria-label="Vue du jeu"></canvas>
@@ -483,6 +510,7 @@ body.ride #tb-gas, body.ride #tb-brake, body.ride #tb-hand, body.ride #tb-siren,
     <div class="callsign"><span>UNITÉ <b>SOLIS</b><i class="cs2"> · SALINE-17</i></span><span id="score">0</span></div>
     <div class="hprow"><div class="bar hp" id="hpbar"><u id="hplag"></u><i id="hpfill"></i></div><div class="combo" id="combo"></div></div>
     <div class="bar st"><i id="stfill"></i></div>
+    <div class="bar fate" id="fatebar" title="Destin"><i id="fatefill"></i></div>
     <div class="team" id="team" hidden></div>
     <!-- mission panel: kept in the top-left column so the centre of the screen stays free -->
     <div class="hud-obj" id="hudobj">
@@ -534,6 +562,7 @@ body.ride #tb-gas, body.ride #tb-brake, body.ride #tb-hand, body.ride #tb-siren,
     <button class="tb sm" id="tb-block" data-b="block" aria-label="Parade"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/></svg><span>Parade</span></button>
     <button class="tb sm" id="tb-dodge" data-b="dodge" aria-label="Roulade"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 11-3-6.2M20 4v5h-5"/></svg><span>Roulade</span></button>
     <button class="tb sm" id="tb-nade" data-b="nade" aria-label="Grenade"><svg viewBox="0 0 24 24"><ellipse cx="11" cy="15" rx="5.6" ry="6"/><path d="M8.6 9V6.6h4.8V9M13.4 7.4l3.4 2.2-0.6 5M6.4 5.6a1.9 1.9 0 1 1 2.2 1.2"/></svg><b id="tb-nade-n">0</b><span>Grenade</span></button>
+    <button class="tb sm" id="tb-fate" data-b="fate" aria-label="Destin" hidden><svg viewBox="0 0 24 24"><path d="M12 2l2.6 6.4L21 9l-5 4.4L17.6 21 12 17.3 6.4 21 8 13.4 3 9l6.4-.6z"/></svg><span>Destin</span></button>
     <button class="tb sm" id="tb-lock" data-b="lock" aria-label="Verrouiller une cible"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.6"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg><span>Cible</span></button>
     <button class="tb big red" id="tb-fire" data-b="fire" aria-label="Tirer" hidden><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg><span>Tir</span></button>
   </div>
@@ -546,6 +575,7 @@ body.ride #tb-gas, body.ride #tb-brake, body.ride #tb-hand, body.ride #tb-siren,
   </div>
 </div>
 
+<div id="reckvig"></div>
 <div id="fade"></div>
 <div id="rotate-hint">Tournez le téléphone : le jeu se joue en paysage</div>
 
@@ -568,6 +598,7 @@ body.ride #tb-gas, body.ride #tb-brake, body.ride #tb-hand, body.ride #tb-siren,
       <button class="mi" data-go="missions">Dossiers<small id="cases-sub">Les enquêtes de l'unité Solis</small></button>
       <button class="mi" data-go="patrol">Patrouille libre<small>Crimes aléatoires dans toute la ville</small></button>
       <button class="mi" data-go="multi" id="mi-multi">Brigade de nuit<small id="multi-sub">Multijoueur en réseau local · 2 à 6 robots</small></button>
+      <button class="mi" data-go="destin">Destin<small id="destin-sub">Talents et Destinées</small></button>
       <button class="mi" data-go="controls">Commandes</button>
       <button class="mi" data-go="options">Options</button>
       <button class="mi" data-go="fullscreen" id="mi-fs">Plein écran</button>
@@ -639,6 +670,19 @@ body.ride #tb-gas, body.ride #tb-brake, body.ride #tb-hand, body.ride #tb-siren,
   </div>
 </div>
 
+<div class="screen scrim-full" id="scr-destin" hidden>
+  <div class="wrap">
+    <h2 class="sh">Destin</h2>
+    <div class="sub" id="destin-pts"></div>
+    <div class="dscroll">
+      <div class="trees" id="trees"></div>
+      <div class="dhead">Destinée</div>
+      <div class="dcards" id="dcards"></div>
+    </div>
+    <div class="row-btns" style="margin-top:14px"><button class="btn" data-act="back">Retour</button><button class="btn" id="destin-reset">Réinitialiser</button></div>
+  </div>
+</div>
+
 <div class="screen scrim" id="scr-pause" hidden>
   <div class="wrap vcenter">
     <h2 class="sh">Pause</h2>
@@ -650,6 +694,7 @@ body.ride #tb-gas, body.ride #tb-brake, body.ride #tb-hand, body.ride #tb-siren,
         <button class="mi" data-go="skip" id="mi-skip" hidden>Passer l’étape</button>
         <button class="mi" data-go="restart">Recommencer</button>
         <button class="mi" data-go="map">Carte</button>
+        <button class="mi" data-go="destin">Destin</button>
         <button class="mi" data-go="controls">Commandes</button>
         <button class="mi" data-go="options">Options</button>
         <button class="mi" data-go="quit">Quitter la mission</button>
