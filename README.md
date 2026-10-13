@@ -7,7 +7,17 @@ Objectif : en faire un RPG d'action narratif, avec la narration de Dragon Age et
 ```
 node tools/build.js      # assemble src/ en dist/index.html
 ```
-Ouvrir `dist/index.html` dans Chrome, Edge ou Firefox. C'est ce même fichier qui va dans l'APK (`assets/index.html`).
+Ouvrir `dist/index.html` dans Chrome, Edge ou Firefox.
+
+## Versions PC et Android
+GitHub compile tout seul à chaque envoi (onglet **Actions → Construire le jeu**, puis « Artifacts ») :
+`Overflow.apk` (Android, en paysage), `Overflow-Setup.exe` et `Overflow-Portable.exe` (Windows), `Overflow.AppImage` (Linux).
+Pour une page de téléchargement : **Actions → Construire le jeu → Run workflow**, cocher **publier** (page *Releases*).
+Nouvelle version : augmenter `version` dans `package.json`.
+
+En local : `npm install`, puis `npm run pc` (lance l'appli PC), `npm run dist:linux` / `dist:win`, ou
+`npm run build:android` puis ouvrir `android/` dans Android Studio.
+L'APK n'a pas la même signature que l'ancien Overflow : désinstaller l'ancien avant d'installer le nouveau.
 
 ## Organisation
 - `src/shell.html` : la page (HTML + CSS), `src/end.html` : la fin du script

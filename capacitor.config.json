@@ -1,0 +1,7 @@
+{
+  "appId": "fr.portsaline.overflow",
+  "appName": "Overflow",
+  "webDir": "www",
+  "backgroundColor": "#05060b",
+  "android": { "backgroundColor": "#05060b", "allowMixedContent": false }
+}
