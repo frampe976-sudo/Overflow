@@ -133,13 +133,12 @@ const Destin = {
     HUD.big('JUGEMENT', 'Chaque ennemi touché est marqué', '', 1.8); document.body.classList.add('reckoning');
     return true;
   },
-  // Fateshift: every marked foe still standing nearby goes down at once
+  // Fateshift: every marked foe nearby takes the blow, even one already on the ground (it is finished off)
   shift(P) {
     let n = 0;
     for (const t of P.marked) {
       t.fateMark = false;
       if (!t.alive || t.removed || t.cuffed || dist2D(P.pos.x, P.pos.z, t.pos.x, t.pos.z) > 16) continue;
-      if (t.down) { n++; continue; }
       t.takeHit(P, Math.max(60, t.maxHp * 0.6), { kind: 'melee', knock: 9, kd: 1.4, poise: 999, heavy: true, unblockable: true });
       FX.hit(t.pos.x, t.pos.y + 1.2, t.pos.z, 1.6); FX.ring(t.pos.x, t.pos.y + 0.05, t.pos.z, 1.6, [0.75, 0.5, 1], 0.6); n++;
     }
