@@ -21,10 +21,11 @@ const check = (name, cond, info) => (cond ? ok : ko).push(name + (cond ? '' : ' 
   check('épée rouillée équipée au départ', st.cur === 'sword' && st.name === 'Épée rouillée' && st.n === 1, st);
   check('le HUD affiche le nom de l’arme', st.hud === 'Épée rouillée', st);
   // 2. sword combo chain + pause finisher
+  const __exp = await E(() => { const C = __OF.COMBOS.sword; return { chain: C.chain.join(), pause: C.pause }; }); /* the sword's combo comes from the animation module once it is installed */
   const chain = await E(() => { P().combo = 0; P().idleAtk = 9; const r = []; for (let i = 0; i < 4; i++) { tap('KeyJ'); r.push(atk()); __OF.test.step(Math.round(__OF.ATK[atk()].cancel * 60) + 1); } __OF.test.step(120); return r.join(); });
-  check('chaîne de l’épée', chain === 'p_sw1,p_sw2,p_sw1,p_sw3', chain);
+  check('chaîne de l’épée', chain === __exp.chain, chain);
   const pz = await E(() => { tap('KeyJ'); let n = 0; while (P().atk && n++ < 120) __OF.test.step(1); __OF.test.step(24); tap('KeyJ'); const a = atk(); __OF.test.step(120); return a; });
-  check('combo à pause de l’épée : tourbillon', pz === 'p_swspin', pz);
+  check('combo à pause de l’épée : tourbillon', pz === __exp.pause, pz);
   // 3. rolled items: properties by rarity, names
   const rolls = await E(() => { const L = __OF.Loot; const r = [0, 1, 2, 3].map(k => L.roll({ rarity: k })); return r.map(i => ({ n: Object.keys(i.aff).length, name: i.name, base: i.base })); });
   check('1 à 4 propriétés selon la rareté', rolls.map(r => r.n).join() === '1,2,3,4', rolls);

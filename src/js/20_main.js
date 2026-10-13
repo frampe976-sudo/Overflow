@@ -599,7 +599,7 @@ const Game = {
     this.last = performance.now(); requestAnimationFrame(t => this.frame(t));
   }
 };
-window.__OF = { Destin, TREES, DESTINIES, Loot, RARITY, Pickups, ATK, spawnEnemy, MP, QR, COOP, NetActor, Patrol, Lightmap, Music, Amb, Folk, People, Sculpt, Arms, Nades, WEAPONS, Game, World, Input, Cars, Save, Gfx, Render, Cam, CamCtl, HUD, Menus, MISSIONS, PATROL, Pickups, FX, Combat, CharRender, BI, Enemy, Civilian, Snd, TRAINING, Tex, City, Districts, Net, Cull, Lights, Env, Glare, Car, Signals, Kit, CASES, CHAPTERS, Campaign,
+window.__OF = { Destin, COMBOS, TREES, DESTINIES, Loot, RARITY, Pickups, ATK, spawnEnemy, MP, QR, COOP, NetActor, Patrol, Lightmap, Music, Amb, Folk, People, Sculpt, Arms, Nades, WEAPONS, Game, World, Input, Cars, Save, Gfx, Render, Cam, CamCtl, HUD, Menus, MISSIONS, PATROL, Pickups, FX, Combat, CharRender, BI, Enemy, Civilian, Snd, TRAINING, Tex, City, Districts, Net, Cull, Lights, Env, Glare, Car, Signals, Kit, CASES, CHAPTERS, Campaign,
   test: {
     // run the simulation without rendering (for automated checks)
     step(n, dt, keys, pad) {
