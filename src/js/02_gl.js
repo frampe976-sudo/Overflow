@@ -253,14 +253,13 @@ void main(){
   vec3 cloudCol = mix(uHorizon * 2.1, vec3(0.03, 0.03, 0.05), smoothstep(0.0, 0.55, h)) + vec3(0.12, 0.13, 0.16) * pow(mdot, 12.0) * uClear;
   col = mix(col, cloudCol, cl * 0.8 * smoothstep(-0.05, 0.12, h));
   col += uFlash * vec3(0.55, 0.6, 0.85) * (0.35 + cl) * smoothstep(-0.1, 0.3, h);
-  // far skyline: blocky silhouette just above the horizon, with a few lit windows
-  float az = atan(d.x, d.z) * 70.0; float bi = floor(az);
-  float bh = 0.012 + 0.05 * pow(fract(sin(bi * 12.9898) * 43758.5453), 2.2) + 0.01 * fract(sin(floor(az * 0.23) * 78.233) * 9631.2);
+  // far hills: a soft ridge just above the horizon, a few shepherds' fires
+  float az = atan(d.x, d.z);
+  float bh = 0.014 + 0.026 * (0.5 + 0.5 * sin(az * 3.0 + 1.3)) * (0.6 + 0.4 * sin(az * 7.0 + 0.4)) + 0.006 * sin(az * 23.0 + 2.0);
   if (uMirror < 0.5 && h > -0.01 && h < bh) {
-    col = mix(col, uHorizon * 0.42, 0.85);
-    vec2 wc = vec2(floor(az * 7.0), floor(h * 900.0));
-    float lit = step(0.9, fract(sin(dot(wc, vec2(12.9898, 78.233))) * 43758.5453)) * step(0.35, fract(az * 7.0)) * step(0.4, fract(h * 900.0));
-    col += vec3(1.0, 0.72, 0.4) * lit * 0.18;
+    col = mix(col, uHorizon * 0.3, 0.88);
+    float fi = floor(az * 90.0), fire = step(0.985, fract(sin(fi * 12.9898) * 43758.5453)) * step(abs(fract(az * 90.0) - 0.5), 0.08) * step(abs(h - bh * 0.5), 0.0015);
+    col += vec3(1.0, 0.55, 0.2) * fire * 0.35;
   }
   col *= smoothstep(-0.25, 0.0, h) * 0.8 + 0.2;
   oC = vec4(col, 1.0);
