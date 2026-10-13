@@ -23,7 +23,10 @@ L'APK n'a pas la même signature que l'ancien Overflow : désinstaller l'ancien 
 - `src/shell.html` : la page (HTML + CSS), `src/end.html` : la fin du script
 - `src/js/NN_*.js` : les modules du jeu, concaténés dans l'ordre des numéros
 - `src/js/11b_destin.js` : combos, jauge de Destin, Jugement, talents et Destinées
-- `tools/test-destin.js` : tests dans le vrai jeu (Chromium sans écran)
+- `src/js/19d_recit.js` : moteur du récit (dialogues à choix, drapeaux, quêtes, codex, journal)
+- `src/js/19e_recit_data.js` : contenu du récit (personnages, dialogues, quêtes du chapitre I)
+- `docs/scenario.md` : le scénario complet (monde, factions, personnages, trame des cinq chapitres)
+- `tools/test-destin.js`, `tools/test-recit.js` : tests dans le vrai jeu (Chromium sans écran)
 
 ## Destin (nouveau)
 - **Chaînes de combos par arme** : poings, batte, clé, couteau, bâton ont chacun leur enchaînement.
@@ -49,3 +52,14 @@ L'APK n'a pas la même signature que l'ancien Overflow : désinstaller l'ancien 
 - Une **Épée rouillée** est offerte au départ. Pas de butin en multijoueur pour l'instant.
 
 Tests : `node tools/test-destin.js` et `node tools/test-loot.js` (après `node tools/build.js`).
+
+## Récit : La Cité engloutie (nouveau)
+Menu titre → **La Cité engloutie**. Le joueur est Dix-Sept, un golem du Guet réveillé dans Port-Saline engloutie
+(scénario complet dans `docs/scenario.md`).
+- **Parler aux PNJ** : `E` (manette Y, bouton Action) près d'un personnage. Un **!** doré signale une quête à prendre, un **?** une quête à rendre.
+- **Dialogues à choix** : texte qui s'écrit, choix au clavier (`1` à `6`, flèches + `Entrée`), à la souris, à la manette ou au doigt.
+  Certaines répliques demandent des points de Destin (*Puissance*, *Finesse*, *Sorcellerie*).
+- **Conséquences** : chaque choix pose des drapeaux sauvegardés ; les PNJ s'en souviennent, changent de répliques ou de place.
+- **Approbation** de Nadia et d'Okafor, **codex** (15 entrées), **journal** (touche `N` ou menu pause).
+- **Contenu jouable** : prologue *L'Éveil*, chapitre I *La Cloche engloutie*, trois quêtes secondaires, neuf personnages.
+- Mourir dans le récit vous ramène au Corps de garde, sans perdre la progression.
