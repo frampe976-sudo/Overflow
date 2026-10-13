@@ -144,3 +144,6 @@ const Loot = {
   // a first, modest blade so the Equipment screen is never empty
   starter() { const g = this.data(); if (g.items.length || g.n) return; const it = this.roll({ base: 'sword', rarity: 0 }); it.aff = { dmg: 0.06 }; it.name = 'Épée rouillée'; g.items.push(it); g.eq = it.id; Save.write(); }
 };
+
+// the fantasy animation clips (10g_anim_fantasy.js) take over the Destin finishers and the fantasy weapons' combos
+AnimFantasy.install({ daggers: 'dagger', scepter: 'sceptre' });
