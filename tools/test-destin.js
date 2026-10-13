@@ -16,7 +16,7 @@ const check = (name, cond, info) => (cond ? ok : ko).push(name + (cond ? '' : ' 
   await E(() => { const T = __OF.test; for (let i = 0; i < 20 && __OF.Game.mode !== 'play'; i++) T.step(10); T.step(60); });
   check('la patrouille démarre', await E(() => __OF.Game.mode === 'play'), await E(() => __OF.Game.mode));
   // helpers in the page: tap a key for 2 frames, then let n frames run
-  await E(() => { window.tap = (k, n = 0) => { __OF.test.step(2, 1 / 60, [k]); if (n) __OF.test.step(n); }; window.P = () => __OF.Game.player; __OF.Game.player.equip('fists'); /* the starter sword is tested in test-loot.js */ window.atk = () => P().atk && P().atk.name; window.upFoe = () => { let n = 0; while (foe.down && n++ < 600) __OF.test.step(1); const Q = P(); foe.pos.x = Q.pos.x + Math.sin(Q.yaw) * 1.1; foe.pos.z = Q.pos.z + Math.cos(Q.yaw) * 1.1; }; });
+  await E(() => { window.tap = (k, n = 0) => { __OF.test.step(2, 1 / 60, [k]); if (n) __OF.test.step(n); }; window.P = () => __OF.Game.player; __OF.Game.player.equip('fists'); /* the starter sword is tested in test-loot.js */ window.atk = () => P().atk && P().atk.name; window.placeFoe = () => { const Q = P(); foe.pos.x = Q.pos.x + Math.sin(Q.yaw) * 1.1; foe.pos.z = Q.pos.z + Math.cos(Q.yaw) * 1.1; }; window.upFoe = () => { let n = 0; while (foe.down && n++ < 600) __OF.test.step(1); const Q = P(); foe.pos.x = Q.pos.x + Math.sin(Q.yaw) * 1.1; foe.pos.z = Q.pos.z + Math.cos(Q.yaw) * 1.1; }; });
   // 1. fists chain, presses buffered during each blow
   const chain = await E(() => { const r = []; for (let i = 0; i < 4; i++) { tap('KeyJ'); r.push(atk()); __OF.test.step(Math.round(__OF.ATK[atk()].cancel * 60) + 1); } __OF.test.step(120); return r.join(); });
   check('chaîne de poings : jab → cross → hook → p_upper', chain === 'jab,cross,hook,p_upper', chain);
@@ -39,9 +39,9 @@ const check = (name, cond, info) => (cond ? ok : ko).push(name + (cond ? '' : ' 
   // 5. Reckoning: the world slows down, foes hit are marked, then the Fateshift
   const r = await E(() => { upFoe(); P().combo = 0; P().fate = 100; tap('KeyV', 5); return { t: P().reckT, k: __OF.Destin.worldK(), cls: document.body.classList.contains('reckoning') }; });
   check('Jugement activé (monde ralenti, voile violet)', r.t > 0 && r.k < 1 && r.cls, r);
-  const marked = await E(() => { const Q = P(), log = []; for (let i = 0; i < 3; i++) { upFoe(); tap('KeyJ', 30); log.push([atk(), foe.state, Math.round(foe.hp)]); } return { n: Q.marked.size, log, reck: Q.reckT }; });
+  const marked = await E(() => { const Q = P(), log = []; for (let i = 0; i < 3; i++) { placeFoe(); tap('KeyJ', 30); log.push([atk(), foe.state, Math.round(foe.hp)]); } return { n: Q.marked.size, log, reck: Q.reckT }; });
   check('les ennemis touchés sont marqués', marked.n >= 1, marked);
-  const after = await E(() => { upFoe(); const hp0 = foe.hp; tap('KeyV', 10); return { t: P().reckT, f: P().fate, cls: document.body.classList.contains('reckoning'), dmg: hp0 - foe.hp }; });
+  const after = await E(() => { placeFoe(); const hp0 = foe.hp; /* no waiting: the Reckoning clock runs, and a marked foe on the ground is hit too */ tap('KeyV', 10); return { t: P().reckT, f: P().fate, cls: document.body.classList.contains('reckoning'), dmg: hp0 - foe.hp }; });
   check('Dénouement : frappe les marqués, vide la jauge', after.t <= 0 && after.f === 0 && !after.cls && after.dmg > 0, after);
   const timeout = await E(() => { const Q = P(); Q.fate = 100; tap('KeyV'); __OF.test.step(Math.ceil((Q.reckMax + 0.5) * 60)); return { t: Q.reckT, f: Q.fate }; });
   check('le Jugement s’arrête seul après sa durée', timeout.t <= 0 && timeout.f === 0, timeout);
