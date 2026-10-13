@@ -1,0 +1,357 @@
+<title>Overflow · Salle d'armes</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral+SC:wght@500;700&family=Alegreya+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Salle d'armes : la scène (squelette du jeu) à gauche, le registre des mouvements à droite ; une seule ambiance nocturne, voulue. */
+:root {
+  --ink: #0f1216; --slab: #171b21; --slab2: #1f242c; --line: #2c333d;
+  --bone: #e6dfd0; --mute: #9aa1aa; --ember: #f0954a; --fate: #b98cff; --steel: #c9d3dd;
+  --f-display: 'Spectral SC', 'Palatino Linotype', Georgia, serif;
+  --f-body: 'Alegreya Sans', 'Segoe UI', system-ui, sans-serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--ink); color: var(--bone); font: 15px/1.45 var(--f-body); margin: 0; }
+.wrap { padding-inline: 16px; padding-block: 14px 24px; max-width: 1280px; margin: 0 auto; display: grid; gap: 14px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+h1 { font: 700 26px/1.1 var(--f-display); letter-spacing: 0.04em; margin: 0; text-wrap: balance; }
+h1 span { color: var(--ember); }
+header p { margin: 0; color: var(--mute); max-width: 70ch; }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; align-items: start; }
+@media (max-width: 860px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.stage { background: var(--slab); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; min-width: 0; }
+canvas { display: block; width: 100%; aspect-ratio: 4 / 3; max-width: 100%; cursor: grab; touch-action: none; background: radial-gradient(ellipse at 50% 70%, #1c222b 0%, var(--slab) 70%); }
+.now { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; padding: 10px 14px 0; }
+.now b { font: 600 18px var(--f-display); letter-spacing: 0.03em; }
+.now .tag { font: 12px var(--f-mono); color: var(--mute); }
+.now p { flex-basis: 100%; margin: 0; color: var(--mute); min-height: 1.45em; }
+.bar { position: relative; height: 8px; margin: 10px 14px; background: var(--slab2); border-radius: 4px; }
+.bar i { position: absolute; inset: 0 auto 0 0; background: var(--steel); border-radius: 4px; opacity: 0.55; }
+.bar s { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ember); }
+.ctrl { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 14px 14px; align-items: center; }
+button { font: 500 14px var(--f-body); color: var(--bone); background: var(--slab2); border: 1px solid var(--line); border-radius: 4px; padding: 6px 11px; cursor: pointer; }
+button:hover { border-color: var(--mute); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+button[aria-pressed="true"] { background: var(--bone); color: var(--ink); border-color: var(--bone); }
+.ctrl .sep { flex: 1; }
+.ctrl label { color: var(--mute); font-size: 13px; display: flex; gap: 6px; align-items: center; }
+aside { display: grid; gap: 12px; min-width: 0; max-height: calc(100vh - 110px); overflow: auto; }
+@media (max-width: 860px) { aside { max-height: none; } }
+section.grp { background: var(--slab); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; display: grid; gap: 6px; }
+.grp h2 { font: 600 15px var(--f-display); letter-spacing: 0.06em; margin: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.grp h2 button { font-size: 12px; padding: 3px 8px; }
+.grp.fate h2 { color: var(--fate); }
+.grp .hint { margin: 0; font-size: 13px; color: var(--mute); }
+.clips { display: flex; flex-wrap: wrap; gap: 6px; }
+.clips button { font: 13px var(--f-mono); padding: 4px 8px; }
+.clips button small { color: var(--mute); margin-left: 6px; font-size: 11px; }
+.clips button[aria-pressed="true"] small { color: var(--ink); }
+@media (prefers-reduced-motion: reduce) { canvas { cursor: default; } }
+</style>
+<div class="wrap">
+  <header>
+    <h1>Salle d'<span>armes</span></h1>
+    <p>Les nouvelles animations de combat, jouées avec le squelette et le moteur d'animation du jeu. Glissez sur la scène pour tourner autour du personnage ; décochez « Passe de style » pour comparer avec les poses clés brutes.</p>
+  </header>
+  <div class="main">
+    <div class="stage">
+      <canvas id="cv" width="960" height="720" aria-label="Personnage qui joue l'animation choisie"></canvas>
+      <div class="now"><b id="nm">—</b><span class="tag" id="tg"></span><p id="ds"></p></div>
+      <div class="bar"><i id="pg"></i><s id="hk"></s></div>
+      <div class="ctrl">
+        <button id="play" aria-pressed="true">Pause</button>
+        <button data-sp="0.25">×¼</button><button data-sp="0.5">×½</button><button data-sp="1" aria-pressed="true">×1</button>
+        <span class="sep"></span>
+        <button data-cam="front">Face</button><button data-cam="side">Profil</button><button data-cam="q" aria-pressed="true">¾</button>
+        <label><input type="checkbox" id="trail" checked> Traînée</label>
+        <label><input type="checkbox" id="style" checked> Passe de style</label>
+        <label><input type="checkbox" id="stop" checked> Arrêt sur impact</label>
+      </div>
+    </div>
+    <aside id="list"></aside>
+  </div>
+</div>
+<script>
+/*__ENGINE__*/
+/*__DESC__*/
+// the Destin attacks of 11b_destin.js (branch destin-combat), timings only, and its combo chains
+Object.assign(ATK, {
+  p_upper: { clip: 'hook', dur: 0.62, hit: 0.3 }, p_shove: { clip: 'shove', dur: 0.66, hit: 0.3 },
+  p_swing2: { clip: 'swing', dur: 0.56, hit: 0.28 }, p_overhead: { clip: 'overhead', dur: 0.86, hit: 0.48 },
+  p_slam: { clip: 'slam', dur: 1.0, hit: 0.56 }, p_stab2: { clip: 'stab', dur: 0.34, hit: 0.15 },
+  p_slash: { clip: 'swing', dur: 0.44, hit: 0.2 }, p_flurry: { clip: 'spinKick', dur: 0.62, hit: 0.26, spin: true },
+  p_staff2: { clip: 'swing', dur: 0.5, hit: 0.24 }, p_staff3: { clip: 'spinKick', dur: 0.66, hit: 0.3, spin: true }
+});
+const COMBOS = {
+  fists: { chain: ['jab', 'cross', 'hook', 'p_upper'], pause: 'p_shove' },
+  bat: { chain: ['batSwing', 'p_swing2', 'p_overhead'], pause: 'p_slam' },
+  knife: { chain: ['stab', 'p_stab2', 'stab', 'p_slash'], pause: 'p_flurry' },
+  staff: { chain: ['batSwing', 'p_staff2', 'p_staff3'], pause: 'p_slam' }
+};
+const ORIG = {}; for (const k in AnimFantasy.SWAP) ORIG[k] = ATK[k].clip;
+AnimFantasy.install();
+
+/* ---------- what each weapon looks like in the hand ---------- */
+// len: from the fist along the weapon; back: part behind the fist (staff); rake as in 10e_arms.js
+const GEAR = {
+  fists: null, fate: { len: 1.0, rake: 0.9, w: 3, glow: 1 }, heavy: { len: 0.85, rake: 0.9, w: 5, head: 0.12 },
+  dagger: { len: 0.3, rake: 0.75, w: 2.5, dual: 1 }, staff: { len: 1.0, back: 0.9, rake: 0.35, w: 3.5 },
+  sword: { len: 0.95, rake: 0.9, w: 2.5 }, greatsword: { len: 1.3, rake: 0.9, w: 4 }, scepter: { len: 0.6, rake: 0.9, w: 3, orb: 1 },
+  shield: { len: 0.85, rake: 0.9, w: 2.5, shield: 1 }, hammer: { len: 0.95, rake: 0.9, w: 4, head: 0.16 }
+};
+const GROUPS = [
+  { id: 'destin', name: 'Fins de combo du Destin', hint: 'Remplacent les clips d’Overflow que réutilisent les combos du Destin.', clips: Object.keys(AnimFantasy.SWAP).map(k => ({ clip: AnimFantasy.SWAP[k], atk: k, note: 'remplace ' + ORIG[k] })),
+    combos: [['fists', 'Poings'], ['bat', 'Batte'], ['knife', 'Couteau'], ['staff', 'Bâton']] },
+  { id: 'fate', name: 'Destin', fate: true, hint: 'Activation du Jugement et exécution du Dénouement.', clips: [{ clip: 'reckonCall', atk: 'f_reckon' }, { clip: 'fateshift', atk: 'f_fateshift' }] },
+  { id: 'sword', name: 'Épée longue', combo: 'sword', gear: 'sword' },
+  { id: 'greatsword', name: 'Espadon', combo: 'greatsword', gear: 'greatsword' },
+  { id: 'hammer', name: 'Marteau de guerre', combo: 'hammer', gear: 'hammer' },
+  { id: 'daggers', name: 'Dagues', combo: 'daggers', gear: 'dagger' },
+  { id: 'scepter', name: 'Sceptre', combo: 'scepter', gear: 'scepter', hint: 'Les sorts eux-mêmes (projectile, onde) restent à brancher.' },
+  { id: 'shield', name: 'Bouclier', gear: 'shield', clips: [{ clip: 'shieldBash', atk: 'f_bash' }] },
+  { id: 'orig', name: 'Clips d’origine', hint: 'Pour comparer avec ce que le jeu utilisait.', clips: ['hook', 'shove', 'swing', 'overhead', 'slam', 'stab', 'spinKick'].map(c => ({ clip: c, atk: Object.keys(ATK).find(k => ATK[k].clip === c) })) }
+];
+for (const G of GROUPS) if (G.combo) {
+  const C = AnimFantasy.COMBOS[G.combo], seen = new Set(); G.clips = [];
+  for (const a of [...C.chain, C.pause]) if (!seen.has(a)) { seen.add(a); G.clips.push({ clip: ATK[a].clip, atk: a, note: a === C.pause ? 'pause' : '' }); }
+  G.combos = [[G.combo, 'Jouer le combo']];
+}
+const COMBO_GEAR = { fists: 'fists', bat: 'heavy', knife: 'dagger', staff: 'staff', sword: 'sword', greatsword: 'greatsword', hammer: 'hammer', daggers: 'dagger', scepter: 'scepter' };
+const clipGear = (clip, G) => G && G.gear ? G.gear : (CLIP_DEFS[clip].cat || 'heavy');
+
+/* ---------- pose: base stance + clip + leg IK, like Anim.update ---------- */
+const BASE_GUARD = new Float32Array(STAND), BASE_READY = new Float32Array(STAND);
+applyLayer(BASE_GUARD, LAYERS.guard, 1); applyLayer(BASE_READY, LAYERS.ready, 1);
+const WM = []; for (let i = 0; i < NB; i++) WM.push(M4.create()); const _t = M4.create();
+function fk(p, yaw, z = 0) {
+  M4.compose(WM[0], 0, 0, z, p[0], yaw + p[1], p[2]);
+  for (let i = 1; i < NB; i++) {
+    const b = BONES[i]; let ox = b[2], oy = b[3], oz = b[4];
+    if (i === 1) { ox += p[HX]; oy += p[HY]; oz += p[HZ]; } else if (i === 6) ox = 0.19; else if (i === 9) ox = -0.19;
+    if (XZY[i]) M4.composeXZY(_t, ox, oy, oz, p[i * 3], p[i * 3 + 1], p[i * 3 + 2]); else M4.compose(_t, ox, oy, oz, p[i * 3], p[i * 3 + 1], p[i * 3 + 2]);
+    M4.mul(WM[i], WM[b[1]], _t);
+  }
+}
+const pos = (i, o = [0, 0, 0]) => { const m = WM[i]; o[0] = m[12]; o[1] = m[13]; o[2] = m[14]; return o; };
+const ptIn = (i, x, y, z) => { const m = WM[i]; return [m[0] * x + m[4] * y + m[8] * z + m[12], m[1] * x + m[5] * y + m[9] * z + m[13], m[2] * x + m[6] * y + m[10] * z + m[14]]; };
+function ankles(p) { fk(p, 0); return [pos(BI.anL), pos(BI.anR)]; }
+const FEET = { guard: ankles(BASE_GUARD), ready: ankles(BASE_READY) };
+// damped least squares on hip pitch / hip roll / knee, so the planted foot stays where the stance put it
+function legIK(p, side, tgt) {
+  const n = side ? 'R' : 'L', ix = [CH['hip' + n], CH['hip' + n] + 2, CH['kn' + n]], ai = BI['an' + n];
+  for (let it = 0; it < 8; it++) {
+    fk(p, 0); const a = pos(ai), e = [tgt[0] - a[0], tgt[1] - a[1], tgt[2] - a[2]];
+    if (Math.hypot(e[0], e[1], e[2]) < 1e-3) break;
+    const J = [];
+    for (const k of ix) { const v = p[k]; p[k] = v + 1e-3; fk(p, 0); const b = pos(ai); p[k] = v; J.push([(b[0] - a[0]) / 1e-3, (b[1] - a[1]) / 1e-3, (b[2] - a[2]) / 1e-3]); }
+    const A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], l2 = 0.004;
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) { let s = r === c ? l2 : 0; for (let k = 0; k < 3; k++) s += J[k][r] * J[k][c]; A[r][c] = s; }
+    const d = A[0][0] * (A[1][1] * A[2][2] - A[1][2] * A[2][1]) - A[0][1] * (A[1][0] * A[2][2] - A[1][2] * A[2][0]) + A[0][2] * (A[1][0] * A[2][1] - A[1][1] * A[2][0]);
+    const inv = [[A[1][1] * A[2][2] - A[1][2] * A[2][1], A[0][2] * A[2][1] - A[0][1] * A[2][2], A[0][1] * A[1][2] - A[0][2] * A[1][1]],
+      [A[1][2] * A[2][0] - A[1][0] * A[2][2], A[0][0] * A[2][2] - A[0][2] * A[2][0], A[0][2] * A[1][0] - A[0][0] * A[1][2]],
+      [A[1][0] * A[2][1] - A[1][1] * A[2][0], A[0][1] * A[2][0] - A[0][0] * A[2][1], A[0][0] * A[1][1] - A[0][1] * A[1][0]]];
+    const y = [0, 1, 2].map(r => (inv[r][0] * e[0] + inv[r][1] * e[1] + inv[r][2] * e[2]) / d);
+    ix.forEach((k, j) => { p[k] += J[j][0] * y[0] + J[j][1] * y[1] + J[j][2] * y[2]; });
+    p[ix[2]] = Math.max(0.02, p[ix[2]]);
+  }
+  p[CH['an' + n]] = -(p[ix[0]] + p[ix[2]] + p[3]);
+}
+const POSE = new Float32Array(PSZ);
+// fighting stance of Anim.rest(): left foot forward, right foot back, both turned out (gw: guard weight)
+function stance(i, gw) {
+  const nx = i ? -0.11 : 0.11, nz = i ? -0.01 : 0.02, ny = i ? -0.1 : 0.1, gx = i ? -0.13 : 0.12, gz = i ? -0.12 : 0.13, gy = i ? -0.55 : -0.15;
+  return [lerp(nx, gx, gw), lerp(nz, gz, gw), lerp(ny, gy, gw)];
+}
+// feet: [dz, lift] of each foot relative to where the stance puts it, root-relative (see footwork)
+let FOOT = [[0, 0], [0, 0]];
+function poseAt(clip, u, gear) {
+  const fists = gear === 'fists', B = fists ? BASE_GUARD : BASE_READY, C = CLIPS2[clip];
+  POSE.set(B); if (C) clipEval(C, u, B, POSE);
+  const legs = C && C.legs || '', gw = fists ? 1 : 0.8, ay = FEET.ready[0][1];
+  for (let i = 0; i < 2; i++) {
+    if (legs.includes(i ? 'R' : 'L')) continue;
+    const r = stance(i, gw), n = i ? 'R' : 'L';
+    POSE[CH['hip' + n] + 1] = r[2] - POSE[4];   // the foot keeps its own direction when the hips turn
+    legIK(POSE, i, [r[0], ay + FOOT[i][1], r[1] + FOOT[i][0]]);
+  }
+  // Anim.headLook: neck and head counter the trunk so the eyes stay on the target (the game does this after the clip)
+  const tP = POSE[3] + POSE[CH.spine] + POSE[CH.chest], tY = POSE[4] + POSE[CH.spine + 1] + POSE[CH.chest + 1], tR = POSE[5] + POSE[CH.spine + 2] + POSE[CH.chest + 2];
+  POSE[CH.neck] = -0.35 * tP; POSE[CH.neck + 1] = -0.4 * tY; POSE[CH.neck + 2] = -0.35 * tR;
+  POSE[CH.head] = 0.03 - 0.45 * tP; POSE[CH.head + 1] = -0.5 * tY; POSE[CH.head + 2] = -0.45 * tR;
+  return POSE;
+}
+/* footwork: the lunge carries the body forward before the blow (speed lunge × 0.45 without a target, Actor.updateAttack),
+   the front foot steps with it (Anim lifts it on a new attack) and the back foot catches up after the impact */
+function footwork(s, t) {
+  if (s.L === undefined) lunges([s]);
+  const q1 = clamp(t / (s.hit * 1.15), 0, 1), q2 = clamp((t - s.hit) / Math.max(0.05, s.dur - s.hit), 0, 1);
+  const root = s.z0 + s.L * ease(clamp(t / s.hit, 0, 1)), front = s.z0 + s.L * ease(q1), back = s.z0 + s.L * ease(q2);
+  FOOT = [[front - root, s.L > 0.02 ? 0.035 * Math.sin(Math.PI * q1) : 0], [back - root, s.L > 0.02 ? 0.025 * Math.sin(Math.PI * q2) : 0]];
+  return root;
+}
+function lunges(list) { let z = 0; for (const s of list) { s.z0 = z; s.L = ((ATK[s.atk] || {}).lunge || 0) * 0.45 * s.hit; z += s.L; } }
+
+/* ---------- sequencer: one clip, or a whole combo with its pause ---------- */
+let seq = [], si = 0, st = 0, playing = true, speed = 1, current = null;
+const REST = 0.45, GAP = 0.08, PAUSE = 0.5;
+function stepOf(atk, clip, gear, label) {
+  const A = ATK[atk] || {}, C = CLIP_DEFS[clip], dur = A.dur || 0.7;
+  return { clip, gear, dur, hit: A.hit || C.hitU * dur, spin: !!(A.spin || C.spin), label, atk };
+}
+function playClip(c, G, btn) {
+  const gear = clipGear(c.clip, G);
+  seq = [stepOf(c.atk, c.clip, gear, c.clip)]; lunges(seq); seq.after = REST; si = 0; st = 0; mark(btn); trail.length = 0;
+}
+function playCombo(id, btn) {
+  const C = COMBOS[id], gear = COMBO_GEAR[id] || 'heavy';
+  seq = C.chain.map(a => stepOf(a, ATK[a].clip, gear, ATK[a].clip));
+  seq.forEach(s => s.gap = GAP); seq[seq.length - 1].gap = PAUSE;
+  const p = stepOf(C.pause, ATK[C.pause].clip, gear, ATK[C.pause].clip); p.pause = true; seq.push(p);
+  lunges(seq); seq.after = REST * 2; si = 0; st = 0; mark(btn); trail.length = 0;
+}
+function mark(btn) { document.querySelectorAll('aside button[aria-pressed]').forEach(b => b.setAttribute('aria-pressed', 'false')); if (btn) btn.setAttribute('aria-pressed', 'true'); }
+
+/* ---------- camera + drawing ---------- */
+const cv = document.getElementById('cv'), cx = cv.getContext('2d');
+const cam = { yaw: 0.75, pitch: 0.22, dist: 4.1, ty: 0.85, tz: 0 };
+const CAMS = { front: [0, 0.15], side: [Math.PI / 2, 0.12], q: [0.75, 0.22] };
+let camGoal = null;
+function project(p) {
+  const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+  const ex = sy * cp * cam.dist, ey = cam.ty + sp * cam.dist, ez = cam.tz + cy * cp * cam.dist;
+  const dx = p[0] - ex, dy = p[1] - ey, dz = p[2] - ez;
+  // camera basis: forward toward the target, right, up
+  const fx = -sy * cp, fy = -sp, fz = -cy * cp, rx = cy, rz = -sy, ux = -fy * rz, uy = rz * fx - rx * fz, uz = fy * rx;
+  const x = dx * rx + dz * rz, y = dx * ux + dy * uy + dz * uz, z = dx * fx + dy * fy + dz * fz;
+  const f = cv.height * 1.15 / Math.max(0.1, z);
+  return [cv.width / 2 + x * f, cv.height * 0.56 - y * f, z, f];
+}
+const SEGS = [['hips', 'spine', 13, 0], ['spine', 'chest', 15, 0], ['chest', 'neck', 9, 0], ['neck', 'head', 6, 0],
+  ['chest', 'shL', 7, 1], ['shL', 'elL', 6.5, 1], ['elL', 'haL', 5.5, 1], ['chest', 'shR', 7, 2], ['shR', 'elR', 6.5, 2], ['elR', 'haR', 5.5, 2],
+  ['hips', 'hipL', 9, 1], ['hipL', 'knL', 8, 1], ['knL', 'anL', 6.5, 1], ['hips', 'hipR', 9, 2], ['hipR', 'knR', 8, 2], ['knR', 'anR', 6.5, 2]];
+const trail = []; let flash = 0, flashAt = null;
+function weaponOf(gear, side) {
+  const G = GEAR[gear]; if (!G) return null;
+  const h = BI[side ? 'haR' : 'haL'], fx = side ? -0.033 : 0.033, c = Math.cos(G.rake), s = Math.sin(G.rake);
+  const fist = ptIn(h, fx, -0.097, 0), tip = ptIn(h, fx, -0.097 - c * G.len, s * G.len), butt = G.back ? ptIn(h, fx, -0.097 + c * G.back, -s * G.back) : fist;
+  return { fist, tip, butt, G };
+}
+function draw(dt) {
+  const W = cv.width, H = cv.height; cx.clearRect(0, 0, W, H);
+  const css = getComputedStyle(document.documentElement), col = n => css.getPropertyValue(n).trim();
+  // ground
+  cx.lineWidth = 1; cx.strokeStyle = col('--line');
+  const gz = Math.round(cam.tz * 2) / 2;
+  for (let i = -4; i <= 4; i++) { const a = project([i * 0.5, 0, gz - 2]), b = project([i * 0.5, 0, gz + 2]), c = project([-2, 0, gz + i * 0.5]), d = project([2, 0, gz + i * 0.5]); cx.beginPath(); cx.moveTo(a[0], a[1]); cx.lineTo(b[0], b[1]); cx.moveTo(c[0], c[1]); cx.lineTo(d[0], d[1]); cx.stroke(); }
+  const step = seq[si] || null, inMove = step && st <= step.dur;
+  const gear = step ? step.gear : 'heavy';
+  let u = 0, yaw = 0;
+  if (inMove) { u = warpU(clamp(st / step.dur, 0, 1), step.hit / step.dur, CLIPS2[step.clip].hitU); if (step.spin) yaw = -clamp((st - step.hit * 0.3) / (step.dur * 0.7), 0, 1) * TAU; }
+  const rz = step ? footwork(step, Math.min(st, step.dur)) : (FOOT = [[0, 0], [0, 0]], 0);
+  cam.tz += (rz - cam.tz) * Math.min(1, dt * 6);
+  const P = inMove ? poseAt(step.clip, u, gear) : poseAt(null, 0, gear);
+  fk(P, yaw, rz);
+  // shadow
+  const hp = pos(BI.hips), sh = project([hp[0], 0, hp[2]]);
+  cx.fillStyle = 'rgba(0,0,0,0.35)'; cx.beginPath(); cx.ellipse(sh[0], sh[1], 0.38 * sh[3], 0.12 * sh[3], 0, 0, TAU); cx.fill();
+  // weapon trail (the swept blade) before the body
+  const fate = gear === 'fate' || (step && (step.pause || CLIP_DEFS[step.clip].cat === 'fate'));
+  const wR = weaponOf(gear, 1), wL = GEAR[gear] && GEAR[gear].dual ? weaponOf(gear, 0) : null;
+  if (wR && inMove) { trail.push([wR.fist, wR.tip, performance.now()]); }
+  const now = performance.now(); while (trail.length && now - trail[0][2] > 260 / Math.max(0.25, speed)) trail.shift();
+  if (document.getElementById('trail').checked && trail.length > 1) {
+    for (let i = 1; i < trail.length; i++) {
+      const a = trail[i - 1], b = trail[i], k = i / trail.length;
+      const p1 = project(a[0]), p2 = project(a[1]), p3 = project(b[1]), p4 = project(b[0]);
+      cx.fillStyle = fate ? `rgba(185,140,255,${0.32 * k})` : `rgba(240,149,74,${0.26 * k})`;
+      cx.beginPath(); cx.moveTo(p1[0], p1[1]); cx.lineTo(p2[0], p2[1]); cx.lineTo(p3[0], p3[1]); cx.lineTo(p4[0], p4[1]); cx.closePath(); cx.fill();
+    }
+  }
+  // body segments, far to near
+  const items = [];
+  for (const s of SEGS) { const a = project(pos(BI[s[0]])), b = project(pos(BI[s[1]])); items.push({ z: (a[2] + b[2]) / 2, f: () => seg(a, b, s[2], s[3]) }); }
+  const head = project(ptIn(BI.head, 0, 0.11, 0.01));
+  items.push({ z: head[2], f: () => { cx.fillStyle = col('--bone'); cx.beginPath(); cx.arc(head[0], head[1], 0.11 * head[3], 0, TAU); cx.fill(); } });
+  for (const n of ['anL', 'anR']) { const a = project(pos(BI[n])), t = project(ptIn(BI[n], 0, -0.08, 0.15)); items.push({ z: a[2], f: () => seg(a, t, 5, n === 'anL' ? 1 : 2) }); }
+  for (const n of ['haL', 'haR']) { const a = project(pos(BI[n])), t = project(ptIn(BI[n], 0, -0.1, 0)); items.push({ z: a[2] - 0.01, f: () => seg(a, t, 6, n === 'haL' ? 1 : 2) }); }
+  for (const w of [wR, wL]) if (w) { const a = project(w.butt), b = project(w.tip); items.push({ z: Math.min(a[2], b[2]) - 0.02, f: () => blade(w, a, b, fate) }); }
+  items.sort((a, b) => b.z - a.z).forEach(it => it.f());
+  // impact flash
+  if (step && inMove && st >= step.hit && st - dt * speed < step.hit && wR) { flash = 1; flashAt = wR.tip; }
+  if (flash > 0 && flashAt) {
+    const p = project(flashAt); cx.strokeStyle = fate ? `rgba(185,140,255,${flash})` : `rgba(255,214,150,${flash})`; cx.lineWidth = 3;
+    cx.beginPath(); cx.arc(p[0], p[1], (1.2 - flash) * 0.35 * p[3], 0, TAU); cx.stroke(); flash -= dt * 4 * Math.max(0.25, speed);
+  }
+  function seg(a, b, w, side) {
+    cx.strokeStyle = side === 1 ? '#b9b2a4' : col('--bone'); cx.lineCap = 'round';
+    cx.lineWidth = Math.max(1.5, w * a[3] / 260); cx.beginPath(); cx.moveTo(a[0], a[1]); cx.lineTo(b[0], b[1]); cx.stroke();
+  }
+  function blade(w, a, b, fate) {
+    const G = w.G; cx.strokeStyle = G.glow || fate ? col('--fate') : col('--steel'); cx.lineCap = 'round';
+    cx.lineWidth = Math.max(1.5, G.w * a[3] / 260); cx.beginPath(); cx.moveTo(a[0], a[1]); cx.lineTo(b[0], b[1]); cx.stroke();
+    if (G.head) { cx.lineWidth = Math.max(3, G.w * 2.6 * b[3] / 260); const k = project(lerp3(w.fist, w.tip, 1 - G.head / G.len)); cx.beginPath(); cx.moveTo(k[0], k[1]); cx.lineTo(b[0], b[1]); cx.stroke(); }
+    if (G.orb) { cx.fillStyle = col('--fate'); cx.beginPath(); cx.arc(b[0], b[1], 0.05 * b[3], 0, TAU); cx.fill(); }
+    if (G.shield) { const l = project(ptIn(BI.elL, 0, -0.14, 0.06)); cx.fillStyle = '#5b4a36'; cx.strokeStyle = col('--steel'); cx.lineWidth = 2; cx.beginPath(); cx.arc(l[0], l[1], 0.24 * l[3], 0, TAU); cx.fill(); cx.stroke(); }
+  }
+  // timeline
+  if (step) {
+    document.getElementById('pg').style.width = (clamp(st / step.dur, 0, 1) * 100) + '%';
+    document.getElementById('hk').style.left = (step.hit / step.dur * 100) + '%';
+    if (current !== step) {
+      current = step; const C = CLIP_DEFS[step.clip];
+      document.getElementById('nm').textContent = step.clip + (step.pause ? ' · fin à pause' : '');
+      document.getElementById('tg').textContent = `${step.atk || '—'} · ${step.dur.toFixed(2)} s · impact ${step.hit.toFixed(2)} s${C.legs ? ' · jambes libres' : ''}${step.spin ? ' · rotation' : ''}`;
+      document.getElementById('ds').textContent = DESC[step.clip] ? DESC[step.clip].replace(/^./, c => c.toUpperCase()) : 'Clip d’origine d’Overflow.';
+    }
+  }
+}
+const lerp3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+let last = performance.now(), freeze = 0;
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (camGoal) { cam.yaw += wrapAngle(camGoal[0] - cam.yaw) * Math.min(1, dt * 8); cam.pitch += (camGoal[1] - cam.pitch) * Math.min(1, dt * 8); }
+  if (playing && seq.length) {
+    const s0 = seq[si], before = st;
+    if (freeze > 0) freeze -= dt; else st += dt * speed;
+    // hit-stop: the game freezes the blow for a few hundredths of a second when it lands (Game.hitstop)
+    if (document.getElementById('stop').checked && before < s0.hit && st >= s0.hit) { st = s0.hit; freeze = (ATK[s0.atk] && ATK[s0.atk].dmg > 18 ? 0.075 : 0.045) / Math.max(0.25, speed); }
+    const s = seq[si], wait = si === seq.length - 1 ? seq.after : (s.gap || GAP);
+    if (st > s.dur + wait) { st = 0; si = (si + 1) % seq.length; if (si === 0) trail.length = 0; }
+  }
+  draw(dt); requestAnimationFrame(frame);
+}
+
+/* ---------- UI ---------- */
+const list = document.getElementById('list');
+for (const G of GROUPS) {
+  const sec = document.createElement('section'); sec.className = 'grp' + (G.fate ? ' fate' : '');
+  const h = document.createElement('h2'); h.textContent = G.name; sec.appendChild(h);
+  if (G.hint) { const p = document.createElement('p'); p.className = 'hint'; p.textContent = G.hint; sec.appendChild(p); }
+  const box = document.createElement('div'); box.className = 'clips';
+  for (const c of G.clips) {
+    const b = document.createElement('button'); b.setAttribute('aria-pressed', 'false'); b.textContent = c.clip;
+    if (c.note) { const sm = document.createElement('small'); sm.textContent = c.note; b.appendChild(sm); }
+    b.onclick = () => playClip(c, G, b); box.appendChild(b);
+  }
+  sec.appendChild(box);
+  if (G.combos) {
+    const cb = document.createElement('div'); cb.className = 'clips';
+    for (const [id, label] of G.combos) { const b = document.createElement('button'); b.setAttribute('aria-pressed', 'false'); b.textContent = G.combos.length > 1 ? 'Combo ' + label.toLowerCase() : label; b.onclick = () => playCombo(id, b); cb.appendChild(b); }
+    sec.appendChild(cb);
+  }
+  list.appendChild(sec);
+}
+document.getElementById('style').onchange = e => { AnimFantasy.style = e.target.checked; trail.length = 0; };
+document.getElementById('play').onclick = e => { playing = !playing; e.target.textContent = playing ? 'Pause' : 'Lecture'; e.target.setAttribute('aria-pressed', playing); };
+document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { speed = +b.dataset.sp; document.querySelectorAll('[data-sp]').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+document.querySelectorAll('[data-cam]').forEach(b => b.onclick = () => { camGoal = CAMS[b.dataset.cam]; document.querySelectorAll('[data-cam]').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+let drag = null;
+cv.addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY]; camGoal = null; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointermove', e => { if (!drag) return; cam.yaw -= (e.clientX - drag[0]) * 0.01; cam.pitch = clamp(cam.pitch + (e.clientY - drag[1]) * 0.006, -0.1, 1.2); drag = [e.clientX, e.clientY]; });
+cv.addEventListener('pointerup', () => { drag = null; });
+// start on the sword combo, a realistic first frame
+playCombo('sword', list.querySelectorAll('section')[2].querySelector('.clips:last-child button'));
+requestAnimationFrame(frame);
+</script>
