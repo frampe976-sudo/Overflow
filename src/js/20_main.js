@@ -334,6 +334,7 @@ const Game = {
     Pickups.add('health', x, World.groundAt(x, z, 0.2, a.pos.y + 0.5), z, { heal: 35 });
   },
   onKO(a, src) {
+    Loot.onFoeDown(a, src);
     const bot = !!(src && src.isRobot);
     this.dropWeapon(a); if (bot) this.dropRepair(a, src);
     if (a.team === 'civ') return;
@@ -341,6 +342,7 @@ const Game = {
   },
   onDeath(a, src, o) {
     if (a === this.player || a.isRobot) return;
+    Loot.onFoeDown(a, src);
     const bot = !!(src && src.isRobot), carBot = !!(o && o.kind === 'car' && (bot || this.player.car));
     const armedAtDeath = !!(a.weapon && WEAPONS[a.weapon] && WEAPONS[a.weapon].firearm) || a.nades > 0;
     this.dropWeapon(a); if (bot && a.team !== 'civ') this.dropRepair(a, src);
@@ -422,7 +424,7 @@ const Game = {
     // drivers follow cars
     for (const c of Cars.list) if (c.driver && c.driver !== P) { const a = c.driver; a.pos.set(c.pos.x + c.fz * 0.4 - c.fx * 0.25, c.pos.y, c.pos.z - c.fx * 0.4 - c.fz * 0.25); a.yaw = c.yaw; }
     if (P.car) { Cars.seatPos(P.car, P.ride ? P.seat : -1, P.pos); P.yaw = P.car.yaw; }
-    Pickups.update(dt);
+    Pickups.update(dt); Loot.update(dt);
     if (MP.on && MP.state === 'play' && this.mode === 'play' && Input.pressed.ping) MP.ping();
     if (!this.live()) return;
     if (this.mission && this.mission.failing && (this.mission.failT -= dt) <= 0) { this.missionFailed(this.mission.failWhy); return; }
@@ -597,7 +599,7 @@ const Game = {
     this.last = performance.now(); requestAnimationFrame(t => this.frame(t));
   }
 };
-window.__OF = { Destin, TREES, DESTINIES, ATK, spawnEnemy, MP, QR, COOP, NetActor, Patrol, Lightmap, Music, Amb, Folk, People, Sculpt, Arms, Nades, WEAPONS, Game, World, Input, Cars, Save, Gfx, Render, Cam, CamCtl, HUD, Menus, MISSIONS, PATROL, Pickups, FX, Combat, CharRender, BI, Enemy, Civilian, Snd, TRAINING, Tex, City, Districts, Net, Cull, Lights, Env, Glare, Car, Signals, Kit, CASES, CHAPTERS, Campaign,
+window.__OF = { Destin, TREES, DESTINIES, Loot, RARITY, Pickups, ATK, spawnEnemy, MP, QR, COOP, NetActor, Patrol, Lightmap, Music, Amb, Folk, People, Sculpt, Arms, Nades, WEAPONS, Game, World, Input, Cars, Save, Gfx, Render, Cam, CamCtl, HUD, Menus, MISSIONS, PATROL, Pickups, FX, Combat, CharRender, BI, Enemy, Civilian, Snd, TRAINING, Tex, City, Districts, Net, Cull, Lights, Env, Glare, Car, Signals, Kit, CASES, CHAPTERS, Campaign,
   test: {
     // run the simulation without rendering (for automated checks)
     step(n, dt, keys, pad) {

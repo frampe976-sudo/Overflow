@@ -258,6 +258,45 @@ const Arms = (() => {
     for (const x of [-0.5, 0.2, 0.8]) m.ring([x, 0, 0], 0, 0.024, 0.005, [0.1, 0.35, 0.3, 0.8], 0, TAU, 12, 6);
     return { geo: m.build(), grip: { c: [0, 0, 0], rake: 0.35 } };
   }
+  /* ---------- fantasy weapons (Destin): same frame as the bat, +x away from the hand ---------- */
+  const LEATHER = [0.12, 0.06, 0.03, 0], BLADE = [0.55, 0.57, 0.6, 0], DARK = [0.09, 0.09, 0.11, 0], GOLD = [0.6, 0.45, 0.15, 0];
+  function sword() { // épée longue: pommel, wrapped grip, cross-guard, tapered double-edged blade with a fuller
+    const m = new Mech();
+    m.rbox([-0.075, 0, 0], [0.02, 0.024, 0.024], 0.012, BRASS);
+    m.cyl(-0.058, 0.13, 0, 0, 0.017, 0.016, LEATHER, { segs: 10 });
+    m.rbox([0.14, 0, 0], [0.013, 0.08, 0.017], 0.006, BRASS);
+    m.rbox([0.53, 0, 0], [0.38, 0.025, 0.0042], 0.002, BLADE, { taper: [0.3, 1] });
+    m.rbox([0.45, 0, 0], [0.27, 0.006, 0.0048], 0.002, dim(BLADE, 0.55), { shade: 0 }); // fuller
+    return { geo: m.build(), grip: { c: [0.03, 0, 0], rake: 0.9 } };
+  }
+  function hammer() { // marteau de guerre: long haft, square head with a back spike
+    const m = new Mech();
+    m.cyl(-0.06, 0.66, 0, 0, 0.017, 0.02, WOOD, { segs: 10 });
+    m.cyl(-0.06, 0.16, 0, 0, 0.019, 0.019, LEATHER, { segs: 10 });
+    m.rbox([0.7, 0, 0], [0.065, 0.06, 0.06], 0.01, DARK);
+    m.rbox([0.7, 0.085, 0], [0.045, 0.03, 0.045], 0.008, STEEL, { shade: 0 });   // striking face
+    m.rbox([0.7, -0.1, 0], [0.018, 0.05, 0.018], 0.006, STEEL, { taper: [1, 1] }); // spike
+    for (const x of [0.62, 0.78]) m.ring([x, 0, 0], 0, 0.024, 0.005, BRASS, 0, TAU, 12, 6);
+    return { geo: m.build(), grip: { c: [0.03, 0, 0], rake: 0.9 } };
+  }
+  function dagger() { // dague: dark blade with a glowing rune line
+    const m = new Mech();
+    m.rbox([0.02, 0, 0], [0.06, 0.013, 0.01], 0.005, LEATHER);
+    m.rbox([0.088, 0, 0], [0.006, 0.03, 0.012], 0.003, GOLD);
+    const b = m.g.vc; m.rbox([0.22, 0.004, 0], [0.13, 0.016, 0.002], 0.0012, DARK, { taper: [0.2, 1] });
+    for (let v = b; v < m.g.vc; v++) { const x = m.g.p[v * 3]; m.g.p[v * 3 + 1] += Math.max(0, x - 0.2) * 0.25; } // curved point
+    m.rbox([0.2, 0.004, 0], [0.08, 0.003, 0.0026], 0.001, [0.3, 0.7, 1, 0.9], { shade: 0 }); // rune
+    return { geo: m.build(), grip: { c: [0.02, 0, 0], rake: 0.75 } };
+  }
+  function sceptre() { // sceptre: gilded rod, cage of rings around a glowing crystal
+    const m = new Mech();
+    m.cyl(-0.08, 0.6, 0, 0, 0.014, 0.017, DARK, { segs: 10 });
+    for (const x of [-0.08, 0.2, 0.58]) m.ring([x, 0, 0], 0, 0.02, 0.005, GOLD, 0, TAU, 12, 6);
+    m.ring([0.7, 0, 0], 2, 0.065, 0.008, GOLD, 0, TAU, 14, 6);
+    m.ring([0.7, 0, 0], 1, 0.065, 0.008, GOLD, 0, TAU, 14, 6);
+    m.rbox([0.7, 0, 0], [0.04, 0.026, 0.026], 0.02, [0.55, 0.35, 1, 1.4], { shade: 0 });
+    return { geo: m.build(), grip: { c: [0.03, 0, 0], rake: 0.6 } };
+  }
   // hand grenade (M67-like): smooth olive body with a yellow marking band, fuze, spoon lever, pin ring
   function grenade() {
     const m = new Mech(), prof = [];
@@ -330,6 +369,7 @@ const Arms = (() => {
       INFO[key] = { long: true, muzzle: ap3(M, mdl.muzzle), R, L };
     };
     H(pistol(), 'pistol'); H(uzi(), 'uzi'); H(bat(), 'bat'); H(knife(), 'knife'); H(wrench(), 'wrench'); H(staff(), 'staff'); H(grenade(), 'grenade');
+    H(sword(), 'sword'); H(hammer(), 'hammer'); H(dagger(), 'dagger'); H(sceptre(), 'sceptre');
     INFO.staff.tip = ap3(toHand(gripAxes(0.35), [0, 0, 0]), [1.05, 0, 0]);
     PartGeo.nade = grenade().geo; // a thrown grenade, centred on its own origin
     C(carbine(), 'rifle'); C(ak(), 'ak'); C(shotgun(), 'shotgun');

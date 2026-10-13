@@ -9,7 +9,7 @@
 const MP_VER = 'coop-21.0';
 const MP_STATES = ['move', 'air', 'attack', 'hit', 'down', 'ko', 'getup', 'dead', 'cuffed', 'beingCuffed', 'surrender', 'car', 'roll', 'hang', 'climb', 'vault', 'ladder', 'fence', 'zip', 'arresting', 'charge', 'cower', 'victim'];
 const MP_SI = {}; MP_STATES.forEach((s, i) => { MP_SI[s] = i; });
-const MP_WPN = [null, 'bat', 'knife', 'wrench', 'staff', 'pistol', 'shotgun', 'rifle', 'ak', 'uzi'];
+const MP_WPN = [null, 'bat', 'knife', 'wrench', 'staff', 'pistol', 'shotgun', 'rifle', 'ak', 'uzi', 'sword', 'hammer', 'dagger', 'sceptre'];
 const MP_WI = {}; MP_WPN.forEach((w, i) => { if (w) MP_WI[w] = i; });
 const MP_SNAP = 3, MP_ME = 4, MP_SNAP_DT = 0.04, MP_ME_DT = 1 / 30;
 const MP_FXK = ['hit', 'spark', 'dust', 'blood', 'muzzle', 'tracer', 'casing', 'splash', 'smoke', 'shockwave', 'ring'];

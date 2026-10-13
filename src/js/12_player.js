@@ -15,6 +15,7 @@ class Player extends Actor {
     this.inv = { melee: null, pistol: { mag: 12, res: 24 }, shotgun: null, rifle: null, ak: null, uzi: null };
     this.nades = 3; this.nadeT = 0;
     this.cur = 'fists'; this.setWeapon(null);
+    Loot.starter(); Loot.apply(this); // the equipped fantasy weapon
     this.combo = 0; this.comboT = 0; this.buffer = null; this.bufferT = 0;
     this.coyote = 0; this.jumpBuf = 0; this.airKicked = false; this.rollBuf = 0;
     this.sprinting = false; this.fireCd = 0; this.reloadT = 0; this.firingT = 0; this.staminaCd = 0; this.heat = 0;

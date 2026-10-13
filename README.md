@@ -26,3 +26,16 @@ Ouvrir `dist/index.html` dans Chrome, Edge ou Firefox. C'est ce même fichier qu
   3 points au départ, 3 de plus à chaque grade.
 - **Destinées** : 11 cartes (dont hybrides : Chevalier runique, Lame de guerre, Ombre-sort, Tisse-destin) débloquées selon les points.
   Menu **Destin** dans l'écran titre et la pause.
+
+## Butin et armes fantasy (nouveau)
+- **Quatre armes** avec modèle 3D et combos propres : épée longue, marteau de guerre, dague, sceptre
+  (chacune avec sa fin de combo à pause : tourbillon, onde de choc, rafale, nova arcanique).
+- **Butin** : un ennemi mis à terre lâche parfois une arme (les boss toujours, au moins Rare).
+  Raretés Commune, Rare, Épique, Légendaire (1 à 4 propriétés ; les légendaires ont un nom propre).
+- **Propriétés** : dégâts, critiques, gain de Destin, vol de vie, feu (brûlure), givre (gel), foudre (arc vers un 2e ennemi).
+  Elles ne comptent que si l'arme est en main.
+- **Équipement** (écran titre et pause) : équiper, **forger** (+12 % par niveau, jusqu'au niveau 10) avec des éclats,
+  **recycler** une arme en éclats. Sac de 24 armes ; plein, la plus faible est recyclée.
+- Une **Épée rouillée** est offerte au départ. Pas de butin en multijoueur pour l'instant.
+
+Tests : `node tools/test-destin.js` et `node tools/test-loot.js` (après `node tools/build.js`).
