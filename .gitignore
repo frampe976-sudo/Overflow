@@ -1,2 +1,7 @@
 dist/
 node_modules/
+www/
+release/
+android/
+*.jks
+*.keystore

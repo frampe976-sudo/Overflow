@@ -1,0 +1,125 @@
+name: Construire le jeu
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      publier:
+        description: "Publier une version téléchargeable (page Releases du dépôt)"
+        type: boolean
+        default: false
+
+jobs:
+  android:
+    name: Application Android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+      - run: npm run build:android
+      - name: Compiler l'APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+      - run: cp android/app/build/outputs/apk/debug/app-debug.apk Overflow.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overflow-android
+          path: Overflow.apk
+          if-no-files-found: error
+
+  pc:
+    name: Application PC (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            script: dist:win
+          - os: ubuntu-latest
+            script: dist:linux
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+      - run: npm run ${{ matrix.script }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overflow-pc-${{ matrix.os }}
+          path: |
+            release/*.exe
+            release/*.AppImage
+          if-no-files-found: error
+
+  # Page de téléchargement : Actions → Construire le jeu → Run workflow → « publier », ou une étiquette vX.Y.Z.
+  # Les noms de fichiers ne changent pas d'une version à l'autre : les liens « releases/latest/download/... » restent valables.
+  release:
+    name: Publier les téléchargements
+    if: ${{ startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publier) }}
+    needs: [android, pc]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dl
+      - name: Préparer les fichiers
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          mkdir -p out
+          cp dl/overflow-android/Overflow.apk out/Overflow.apk
+          cp "$(find dl/overflow-pc-windows-latest -name 'Overflow-Setup-*.exe' | head -n1)" out/Overflow-Setup.exe
+          cp "$(find dl/overflow-pc-windows-latest -name 'Overflow-Portable-*.exe' | head -n1)" out/Overflow-Portable.exe
+          cp "$(find dl/overflow-pc-ubuntu-latest -name '*.AppImage' | head -n1)" out/Overflow.AppImage
+          cat > notes.md <<NOTES
+          ## Télécharger
+
+          | Appareil | Fichier |
+          |---|---|
+          | 📱 Android | **Overflow.apk** |
+          | 🪟 Windows (installation) | **Overflow-Setup.exe** |
+          | 🪟 Windows (sans installation) | **Overflow-Portable.exe** |
+          | 🐧 Linux | **Overflow.AppImage** |
+
+          ## Installer
+
+          - **Android** : désinstalle d'abord l'ancienne version d'Overflow (elle n'a pas la même signature), puis ouvre l'APK et autorise « Installer des applis inconnues » quand Android le demande.
+          - **Windows** : l'application n'est pas signée, Windows peut afficher « Windows a protégé votre ordinateur » : **Informations complémentaires → Exécuter quand même**.
+          - **Linux** : rends le fichier exécutable (chmod +x Overflow.AppImage) puis lance-le.
+
+          Version $VERSION.
+          NOTES
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: Overflow ${{ env.VERSION }}
+          target_commitish: ${{ github.sha }}
+          body_path: notes.md
+          files: out/*
+          make_latest: "true"
