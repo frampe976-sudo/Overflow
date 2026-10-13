@@ -43,7 +43,11 @@ const Medieval = {
   },
   hash(x, z, k = 0) { return Math.abs(Math.sin(x * 12.9898 + z * 78.233 + k * 37.719) * 43758.5453) % 1; },
   /* ---------- roofs ---------- */
-  ROOF_COLS: [[0.34, 0.35, 0.4], [0.62, 0.33, 0.24], [0.5, 0.3, 0.22], [0.28, 0.29, 0.33], [0.56, 0.38, 0.26]],
+  ROOF_COLS: [[0.34, 0.35, 0.4], [0.62, 0.33, 0.24], [0.5, 0.3, 0.22], [0.28, 0.29, 0.33], [0.56, 0.38, 0.26], [0.62, 0.52, 0.3], [0.55, 0.46, 0.27], [0.66, 0.56, 0.34]], // slate, red and brown tiles, straw thatch
+  // village scale: low houses (a storey or two under a steep roof), tall buildings squeezed
+  vh(h) { return h <= 8 ? h : 8 + (h - 8) * 0.45; },
+  VILLAGE: { brick: k => k < 0.6 ? 'brick2' : 'brick', concrete: k => k < 0.55 ? 'house' : 'concrete', tenement: () => 'brick2', hlm: k => k < 0.5 ? 'plaster' : 'house', office: () => 'plaster', lantern: k => k < 0.5 ? 'brick2' : 'lantern', glass: () => 'stone', tower: () => 'stone' },
+  village(fn) { const M = this; return function (...a) { const prev = M._hmap; M._hmap = (h, style, x0, z0) => { const r = M.VILLAGE[style]; return [M.vh(h), r ? r(M.hash(x0, z0, 3)) : style]; }; try { return fn.apply(this, a); } finally { M._hmap = prev; } }; },
   STONE: { brick: 1, concrete: 1, glass: 1, tower: 1, stone: 1, tenement: 1, hospital: 1, office: 1, warehouse: 1, mall: 1, industrial: 0 },
   // a sloped quad with the tile texture (u along the eaves, v up the slope, in metres / 4)
   slope(A, ox, oy, oz, ux, uy, uz, vx, vy, vz, col) {
@@ -105,7 +109,7 @@ const Medieval = {
   },
   // walkable roofs keep their flat top: a skirt of tiles climbs from the eaves around it (what the street sees is a tiled roof)
   skirt(A, b, col) {
-    const o = 0.45, d = 1.4, up = 1.0, ye = b.h - 0.3, yi = b.h + up, c = [col[0], col[1], col[2], 0];
+    const o = 0.45, d = Math.min(2.8, (b.x1 - b.x0) * 0.22, (b.z1 - b.z0) * 0.22), up = d * 1.1, ye = b.h - 0.3, yi = b.h + up, c = [col[0], col[1], col[2], 0];
     const O = [[b.x0 - o, b.z0 - o], [b.x1 + o, b.z0 - o], [b.x1 + o, b.z1 + o], [b.x0 - o, b.z1 + o]], I = [[b.x0 + d, b.z0 + d], [b.x1 - d, b.z0 + d], [b.x1 - d, b.z1 - d], [b.x0 + d, b.z1 - d]];
     for (let k = 0; k < 4; k++) { const k2 = (k + 1) % 4; this.quad4(A, [O[k2][0], ye, O[k2][1]], [O[k][0], ye, O[k][1]], [I[k][0], yi, I[k][1]], [I[k2][0], yi, I[k2][1]], c); }
     A.box(b.x0 + d, b.h, b.z0 + d, b.x1 - d, yi - 0.02, b.z1 - d, { faces: 'xXzZ', cell: CELL.wood, su: 3, sv: 3, col: [0.5, 0.42, 0.34, 0] }); // the inner edge: a low board kerb
@@ -122,7 +126,9 @@ const Medieval = {
     const wall = (PAL[b.style] && PAL[b.style][0]) || [0.7, 0.68, 0.64], stone = this.STONE[b.style] !== undefined ? !!this.STONE[b.style] : false;
     const k = this.hash(b.x0, b.z0), roofCol = this.ROOF_COLS[Math.floor(k * this.ROOF_COLS.length)].map(v => v * (0.9 + this.hash(b.z1, b.x1) * 0.2));
     const used = b.ladders.length || (b.reserved && b.reserved.length) || b.zipAnchor || b.walk;
-    const tall = b.h >= 26 || b.style === 'glass' || b.style === 'tower';
+    const S = World.spots && World.spots.skyscraper, fightRoof = S && S.x > b.x0 && S.x < b.x1 && S.z > b.z0 && S.z < b.z1 && Math.abs(S.y - b.h) < 1;
+    const tall = !fightRoof && (b.h >= 26 && stone || b.style === 'glass' || b.style === 'tower');
+    if (fightRoof) { this.battlements(A, b, true, [wall[0] * 0.85, wall[1] * 0.85, wall[2] * 0.85]); return; } // the campaign fights on this roof: keep it clear
     if (tall) { // tower: corbelled parapet with merlons, a slate spire with a gilded finial, turrets at the corners
       const o = 0.5; A.cbox(b.x0 - o, b.h - 0.9, b.z0 - o, b.x1 + o, b.h, b.z1 + o, [wall[0] * 0.8, wall[1] * 0.8, wall[2] * 0.8, 0], 'xXzZy');
       this.battlements(A, { x0: b.x0 - o, z0: b.z0 - o, x1: b.x1 + o, z1: b.z1 + o, h: b.h }, true, [wall[0] * 0.85, wall[1] * 0.85, wall[2] * 0.85]);
@@ -137,7 +143,7 @@ const Medieval = {
       return;
     }
     if (used || b.noPitch) {
-      if (stone && (w * d > 260 || b.h >= 14) || b.noPitch || w < 4.5 || d < 4.5) this.battlements(A, b, stone, stone ? [wall[0] * 0.92, wall[1] * 0.9, wall[2] * 0.86] : [0.36, 0.26, 0.18]);
+      if (stone && w * d > 700 || b.noPitch || w < 4.5 || d < 4.5) this.battlements(A, b, stone, stone ? [wall[0] * 0.92, wall[1] * 0.9, wall[2] * 0.86] : [0.36, 0.26, 0.18]);
       else this.skirt(A, b, roofCol);
       return;
     }
@@ -180,7 +186,11 @@ for (const k of ['g_tide', 'g_rats', 'g_sea']) SIGN_COL[k] = [0.55, 0.6, 0.55];
 
 Object.assign(City, {
   bld(x0, z0, x1, z1, h, style, o = {}) { // the shops get timber posts between the fronts, the cornice is a stone or oak ledge
-    const info = _cityOrig.bld.call(this, x0, z0, x1, z1, h, style, o);
+    const M = Medieval, h0 = h;
+    if (M._hmap) [h, style] = M._hmap(h, style, x0, z0, o);
+    M._inBld = (M._inBld || 0) + 1;
+    let info; try { info = _cityOrig.bld.call(this, x0, z0, x1, z1, h, style, o); } finally { M._inBld--; }
+    info.h0 = h0;
     if (o.walk) info.walk = true;
     return info;
   },
@@ -431,7 +441,7 @@ Object.assign(City, {
     const pod = this.bld(K.lx0, K.lz0, K.lx1, K.lz1, podH, 'concrete', { streets: 'xXzZ', col: G.pick(PAL.concrete), roofProps: false });
     K.blds.push(pod);
     const tw = G.r(14, 20), td = G.r(14, 20); const tx = K.cx + G.r(-4, 4), tz = K.cz + G.r(-4, 4);
-    const H = G.r(34, 72) * 0.62; // keeps, not skyscrapers
+    const H = G.r(34, 72) * 0.42; // keeps, not skyscrapers
     const tower = this.bld(tx - tw / 2, tz - td / 2, tx + tw / 2, tz + td / 2, H, G.chance(0.5) ? 'tower' : 'glass', { base: podH, roofProps: false, signs: false });
     K.blds.push(tower);
     G.pick([0, 1, 2]);
@@ -450,59 +460,6 @@ Object.assign(City, {
     const col = [c[0], c[1], c[2], 0];
     A.box(x - hx, y, z - hz, x + hx, y + H, z + hz, { faces: 'xXzZY', cell: CELL.container, su: along ? L / 2 : W, sv: H, col, top: { cell: CELL.metal, su: 3, sv: 3, col: [c[0] * 0.8, c[1] * 0.8, c[2] * 0.8, 0] } });
     return World.addBox(x - hx, y, z - hz, x + hx, y + H, z + hz, 'cont');
-  },
-  /* ---------- the outer ring: town walls and towers; hills, castles and steeples beyond ---------- */
-  backdrop() {
-    const X0 = RX[0] - RHW - SIDEW, X1 = RX[NI] + RHW + SIDEW, Z0 = RZ[0] - RHW - SIDEW;
-    this.slab(BOUNDS.x0, BOUNDS.z0, X0, 141, GCELL.pavers); this.slab(X1, BOUNDS.z0, BOUNDS.x1, 141, GCELL.pavers); this.slab(X0, BOUNDS.z0, X1, Z0, GCELL.pavers);
-    const ring = [];
-    for (let z = Z0 - 36; z < 138;) { const d = G.r(18, 34); const z1 = Math.min(z + d, 138); ring.push([X0 - G.r(26, 34), z, X0, z1]); ring.push([X1, z, X1 + G.r(26, 34), z1]); z = z1 + G.r(0, 1.5); }
-    for (let x = X0; x < X1;) { const d = G.r(18, 36); const x1 = Math.min(x + d, X1); ring.push([x, Z0 - G.r(26, 36), x1, Z0]); x = x1 + G.r(0, 1.5); }
-    let k = 0;
-    for (const [x0, z0, x1, z1] of ring) { // tall town houses against the wall, every few lots a tower
-      const tower = k++ % 4 === 0, h = tower ? G.r(30, 40) : G.r(14, 24);
-      const style = tower ? G.pick(['tower', 'glass']) : G.pick(['brick', 'plaster', 'brick2', 'tenement', 'stone', 'concrete', 'lantern', 'house']);
-      this.bld(x0, z0, x1, z1, h, style, { roofProps: false, signs: false, shops: false });
-    }
-    const BW = 3, BH = 60, bo = { noray: true, nowalk: true };
-    World.addBox(BOUNDS.x0 - BW, -5, BOUNDS.z0 - BW, BOUNDS.x0, BH, WATER_Z, 'bound', bo); World.addBox(BOUNDS.x1, -5, BOUNDS.z0 - BW, BOUNDS.x1 + BW, BH, WATER_Z, 'bound', bo);
-    World.addBox(BOUNDS.x0 - BW, -5, BOUNDS.z0 - BW, BOUNDS.x1 + BW, BH, BOUNDS.z0, 'bound', bo);
-    this.bld(BOUNDS.x0, 144, X0 - 2, WATER_Z, 14, 'warehouse', { roofProps: false, signs: false, shops: false });
-    this.bld(X1 + 2, 144, BOUNDS.x1, WATER_Z, 14, 'warehouse', { roofProps: false, signs: false, shops: false });
-    const A = this.B.atlas, M = Medieval;
-    // the town wall beyond the houses: a continuous rampart with round towers
-    const WY = 26, wall = [0.62, 0.6, 0.56, 0];
-    const rampart = (ax, az, bx, bz) => {
-      A.box(Math.min(ax, bx), 0, Math.min(az, bz), Math.max(ax, bx), WY, Math.max(az, bz), { faces: 'xXzZY', cell: CELL.concrete, su: 24, sv: 25.6, col: wall, top: { cell: CELL.roof, su: 12, sv: 12, col: [0.6, 0.6, 0.6, 0] } });
-      M.battlements(A, { x0: Math.min(ax, bx), z0: Math.min(az, bz), x1: Math.max(ax, bx), z1: Math.max(az, bz), h: WY }, true, [0.6, 0.58, 0.54]);
-    };
-    rampart(X0 - 50, Z0 - 50, X0 - 42, 160); rampart(X1 + 42, Z0 - 50, X1 + 50, 160); rampart(X0 - 50, Z0 - 50, X1 + 50, Z0 - 42);
-    for (const [x, z] of [[X0 - 46, Z0 - 46], [X1 + 46, Z0 - 46], [X0 - 46, 150], [X1 + 46, 150], [X0 - 46, -120], [X1 + 46, -120], [-200, Z0 - 46], [0, Z0 - 46], [200, Z0 - 46]]) {
-      A.addGeo(cylGeo(9, 9, 38, 16), M4.compose(M4.create(), x, 0, z, 0, 0, 0), [0.6, 0.58, 0.54, 0]);
-      A.addGeo(cylGeo(10, 0.3, 16, 16, false), M4.compose(M4.create(), x, 38, z, 0, 0, 0), [0.26, 0.27, 0.32, 0]);
-      for (let q = 0; q < 6; q++) { const a = q / 6 * TAU; M.torchFar(this, x + Math.sin(a) * 9.2, 28, z + Math.cos(a) * 9.2); }
-    }
-    // hills and castles beyond (no colliders)
-    for (let k2 = 0; k2 < 46; k2++) {
-      const a = k2 / 46 * TAU + G.r(-0.03, 0.03); const r = G.r(560, 760); const x = Math.sin(a) * r * 1.1, z = -Math.cos(a) * r * 0.75 - 120;
-      if (z > WATER_Z - 20) continue;
-      const w = G.r(140, 260), h = G.r(40, 110);
-      A.addGeo(cylGeo(w * 0.5, w * 0.12, h, 9, false), M4.compose(M4.create(), x, -2, z, 0, G.r(0, 3), 0), [0.1, 0.13, 0.11, 0]);
-      if (G.chance(0.28)) { // a castle on the hill: keep, towers, spires
-        const cy = h - 6, cs = G.r(18, 30);
-        A.box(x - cs / 2, cy, z - cs / 2, x + cs / 2, cy + cs * 0.9, z + cs / 2, { faces: 'xXzZ', cell: CELL.tower, su: 24, sv: 25.6, col: [0.45, 0.46, 0.5, 0] });
-        M.spire(A, x - cs / 2, z - cs / 2, x + cs / 2, z + cs / 2, cy + cs * 0.9, cs * 0.7, [0.16, 0.17, 0.2], 1);
-        for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const tx = x + dx * cs * 0.6, tz = z + dz * cs * 0.6; A.addGeo(cylGeo(3.5, 3.5, cs * 1.2, 8), M4.compose(M4.create(), tx, cy, tz, 0, 0, 0), [0.42, 0.43, 0.47, 0]); A.addGeo(cylGeo(4, 0.1, cs * 0.6, 8, false), M4.compose(M4.create(), tx, cy + cs * 1.2, tz, 0, 0, 0), [0.16, 0.17, 0.2, 0]); }
-        if (G.chance(0.6)) this.B.glow.cbox(x - 1, cy + cs * 0.5, z + cs / 2, x + 1, cy + cs * 0.5 + 2, z + cs / 2 + 0.2, [1, 0.6, 0.25, 1.2]);
-      }
-    }
-    // the far shore across the bay: a fishing town, a church, a lighthouse on the point
-    for (let x = -900; x < 900; x += G.r(20, 60)) {
-      const w = G.r(15, 40), h = G.r(8, 20), z = G.r(620, 700);
-      A.box(x, -2, z, x + w, h, z + w * 0.6, { faces: 'xXzZ', cell: G.pick([CELL.plaster, CELL.brick, CELL.house, CELL.stone]), su: 24, sv: 25.6, col: [0.5, 0.52, 0.58, 0] });
-      M.gable(A, x, z, x + w, z + w * 0.6, h, Math.min(w, w * 0.6) * 0.5, [0.2, 0.2, 0.24], [0.5, 0.52, 0.58], 0.5);
-      if (G.chance(0.08)) { A.box(x + w / 2 - 4, h, z + 2, x + w / 2 + 4, h + 26, z + 10, { faces: 'xXzZ', cell: CELL.stone, su: 24, sv: 25.6, col: [0.5, 0.52, 0.58, 0] }); M.spire(A, x + w / 2 - 4, z + 2, x + w / 2 + 4, z + 10, h + 26, 22, [0.18, 0.19, 0.22], 0.4); }
-    }
   }
 });
 Medieval.torchFar = (C, x, y, z) => { C._noCor = true; C.B.glow.cbox(x - 0.3, y, z - 0.3, x + 0.3, y + 0.8, z + 0.3, [1, 0.55, 0.2, 2]); C._noCor = false; C.corona(x, y + 0.4, z, [1, 0.58, 0.22], 1.4, 0.8, {}); };
@@ -703,3 +660,116 @@ City.streetProps = function () {
     World.addBox(x - 0.3, 0, z - 0.3, x + 0.3, h, z + 0.3, 'pole', { noray: true });
   };
 })();
+
+/* ---------- a village, not a city: low timber houses, squat guild towers, a palisade and windmills ---------- */
+City.genericBlock = Medieval.village(City.genericBlock);
+Districts.rowBlock = Medieval.village(Districts.rowBlock);
+Districts.g_hlm = Medieval.village(Districts.g_hlm);
+// same draws as the original; the height test reads the height the generator asked for, so the sequence holds
+City.addLadders = function (K) {
+  for (const info of K.blds) {
+    if ((info.h0 || info.h) > 22 || info.ladders.length) continue;
+    if (G.chance(0.35) && K.blds.length > 3) continue;
+    const faces = K.court ? info.streets.split('') : 'xXzZ'.split('').filter(f => info.streets.indexOf(f) < 0);
+    const f = faces.length ? G.pick(faces) : G.pick('xXzZ'.split(''));
+    const t = G.r(0.25, 0.75);
+    const [px, pz, nx, nz] = this.facePoint(info, f, t);
+    const q = World.query(px + nx * 0.8 - 0.3, pz + nz * 0.8 - 0.3, px + nx * 0.8 + 0.3, pz + nz * 0.8 + 0.3, []);
+    if (q.some(b => b.kind === 'bld' && b !== info.box)) continue;
+    this.ladder(px, pz, nx, nz, CURB, info.h, info);
+  }
+};
+// the financial towers become squat guild towers; their setbacks and masts (drawn outside bld) are dropped
+(() => {
+  const fin = Districts.g_fin;
+  Districts.g_fin = function (C, K) {
+    const M = Medieval, A = C.B.atlas, box = A.box, tube = A.tube, prev = M._hmap;
+    M._hmap = (h, style, x0, z0, o) => o.base ? [18 + Math.max(0, h - 55) * 0.15, 'stone'] : [h, style];
+    A.box = function (...a) { return M._inBld ? box.apply(this, a) : undefined; };
+    A.tube = function (...a) { return M._inBld ? tube.apply(this, a) : undefined; };
+    const S0 = World.spots.skyscraper;
+    try { fin.call(this, C, K); } finally { A.box = box; A.tube = tube; M._hmap = prev; }
+    const S = World.spots.skyscraper;
+    if (S && S !== S0) { const b = World.buildings.find(q => S.x > q.x0 && S.x < q.x1 && S.z > q.z0 && S.z < q.z1 && q.h0 === S.y); if (b) S.y = b.h; }
+  };
+})();
+// backdrop: cottages along the edge, a palisade of sharpened stakes with watchtowers, windmills on the rise beyond
+City.backdrop = function () {
+  const X0 = RX[0] - RHW - SIDEW, X1 = RX[NI] + RHW + SIDEW, Z0 = RZ[0] - RHW - SIDEW;
+  this.slab(BOUNDS.x0, BOUNDS.z0, X0, 141, GCELL.pavers); this.slab(X1, BOUNDS.z0, BOUNDS.x1, 141, GCELL.pavers); this.slab(X0, BOUNDS.z0, X1, Z0, GCELL.pavers);
+  const ring = [];
+  for (let z = Z0 - 36; z < 138;) { const d = G.r(12, 22); const z1 = Math.min(z + d, 138); ring.push([X0 - G.r(14, 26), z, X0, z1]); ring.push([X1, z, X1 + G.r(14, 26), z1]); z = z1 + G.r(1, 4); }
+  for (let x = X0; x < X1;) { const d = G.r(12, 24); const x1 = Math.min(x + d, X1); ring.push([x, Z0 - G.r(14, 26), x1, Z0]); x = x1 + G.r(1, 4); }
+  let k = 0;
+  for (const [x0, z0, x1, z1] of ring) { // cottages and barns, now and then a stone chapel tower
+    const chapel = k++ % 9 === 0, h = chapel ? G.r(20, 26) : G.r(6, 11);
+    const style = chapel ? 'stone' : G.pick(['brick2', 'plaster', 'house', 'house', 'concrete', 'brick2']);
+    this.bld(x0, z0, x1, z1, h, style, { roofProps: false, signs: false, shops: false });
+  }
+  const BW = 3, BH = 60, bo = { noray: true, nowalk: true };
+  World.addBox(BOUNDS.x0 - BW, -5, BOUNDS.z0 - BW, BOUNDS.x0, BH, WATER_Z, 'bound', bo); World.addBox(BOUNDS.x1, -5, BOUNDS.z0 - BW, BOUNDS.x1 + BW, BH, WATER_Z, 'bound', bo);
+  World.addBox(BOUNDS.x0 - BW, -5, BOUNDS.z0 - BW, BOUNDS.x1 + BW, BH, BOUNDS.z0, 'bound', bo);
+  this.bld(BOUNDS.x0, 144, X0 - 2, WATER_Z, 9, 'warehouse', { roofProps: false, signs: false, shops: false });
+  this.bld(X1 + 2, 144, BOUNDS.x1, WATER_Z, 9, 'warehouse', { roofProps: false, signs: false, shops: false });
+  const A = this.B.atlas, M = Medieval, PH = 9, wood = [0.42, 0.31, 0.2, 0], dark = [0.3, 0.22, 0.14, 0];
+  // palisade: a plank wall faced with stakes, a sawtooth of sharpened points along the top
+  const palisade = (ax, az, bx, bz) => {
+    const x0 = Math.min(ax, bx), x1 = Math.max(ax, bx), z0 = Math.min(az, bz), z1 = Math.max(az, bz), alongX = x1 - x0 > z1 - z0, L = alongX ? x1 - x0 : z1 - z0;
+    A.box(x0, 0, z0, x1, PH, z1, { faces: 'xXzZY', cell: CELL.industrial, su: 6, sv: 6, col: wood });
+    const n = Math.floor(L / 0.9), cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    for (let i = 0; i < n; i++) {
+      const s0 = (alongX ? x0 : z0) + i * 0.9, s1 = s0 + 0.9, sm = s0 + 0.45, tip = PH + 1.1 + M.hash(s0, cx + cz) * 0.5;
+      if (alongX) for (const z of [z0 - 0.02, z1 + 0.02]) M.tri(A, [s0, PH, z], [s1, PH, z], [sm, tip, z], dark);
+      else for (const x of [x0 - 0.02, x1 + 0.02]) M.tri(A, [x, PH, s0], [x, PH, s1], [x, tip, sm], dark);
+    }
+  };
+  palisade(X0 - 34, Z0 - 34, X0 - 32, 160); palisade(X1 + 32, Z0 - 34, X1 + 34, 160); palisade(X0 - 34, Z0 - 34, X1 + 34, Z0 - 32);
+  // timber watchtowers on four legs, a shingled pyramid roof and a brazier
+  for (const [x, z] of [[X0 - 33, Z0 - 33], [X1 + 33, Z0 - 33], [X0 - 33, 150], [X1 + 33, 150], [X0 - 33, -120], [X1 + 33, -120], [-200, Z0 - 33], [0, Z0 - 33], [200, Z0 - 33]]) {
+    for (const [dx, dz] of [[-2.2, -2.2], [2.2, -2.2], [-2.2, 2.2], [2.2, 2.2]]) A.tube(x + dx, 0, z + dz, x + dx * 0.8, 14, z + dz * 0.8, 0.3, dark, 6);
+    A.box(x - 2.8, 14, z - 2.8, x + 2.8, 16.8, z + 2.8, { faces: 'xXzZYy', cell: CELL.industrial, su: 6, sv: 6, col: wood });
+    A.addGeo(cylGeo(4.4, 0.2, 4.5, 4, false), M4.compose(M4.create(), x, 18.6, z, 0, Math.PI / 4, 0), [0.32, 0.24, 0.17, 0]);
+    for (const [dx, dz] of [[-2.6, -2.6], [2.6, -2.6], [-2.6, 2.6], [2.6, 2.6]]) A.tube(x + dx, 16.8, z + dz, x + dx, 18.6, z + dz, 0.12, dark, 4);
+    M.torchFar(this, x, 17.2, z);
+  }
+  // windmills on the rise beyond the stakes: stone tower, conical cap, four lattice sails
+  const mill = (x, z, yaw) => {
+    A.addGeo(cylGeo(4.2, 3.2, 13, 12), M4.compose(M4.create(), x, 0, z, 0, 0, 0), [0.62, 0.6, 0.55, 0]);
+    A.addGeo(cylGeo(3.7, 0.2, 4.2, 12, false), M4.compose(M4.create(), x, 13, z, 0, 0, 0), [0.4, 0.3, 0.2, 0]);
+    const hx = x + Math.sin(yaw) * 4, hz = z + Math.cos(yaw) * 4, hy = 13.5, tx = Math.cos(yaw), tz = -Math.sin(yaw);
+    for (let s = 0; s < 4; s++) {
+      const a = s * Math.PI / 2 + 0.4, ux = Math.cos(a), uy = Math.sin(a), ex = hx + tx * ux * 11, ey = hy + uy * 11, ez = hz + tz * ux * 11;
+      A.tube(hx, hy, hz, ex, ey, ez, 0.16, dark, 4);
+      const px = -uy, py = ux; // the sail cloth: a narrow quad beside the arm
+      M.quad4(A, [hx + tx * ux * 2.5, hy + uy * 2.5, hz + tz * ux * 2.5], [ex, ey, ez], [ex + tx * px * 2, ey + py * 2, ez + tz * px * 2], [hx + tx * (ux * 2.5 + px * 2), hy + uy * 2.5 + py * 2, hz + tz * (ux * 2.5 + px * 2)], [0.78, 0.72, 0.6, 0], CELL.plain);
+    }
+    World.lightsStatic.push({ x: hx, y: 3, z: hz, r: 1.6, g: 0.9, b: 0.4, range: 10, flick: 1 });
+  };
+  mill(X0 - 70, -60, Math.PI / 2 + 0.3); mill(X1 + 75, 30, -Math.PI / 2 - 0.2); mill(-120, Z0 - 80, 0.2); mill(150, Z0 - 95, -0.3); mill(X0 - 90, Z0 - 60, 0.8);
+  // fields between the stakes and the hills: strips of tilled earth and green
+  for (let i = 0; i < 26; i++) {
+    const a = i / 26 * TAU, r = 320 + M.hash(i, 7) * 60, x = Math.sin(a) * r * 1.1, z = -Math.cos(a) * r * 0.7 - 120; if (z > 120) continue;
+    const c = M.hash(i, 9) < 0.5 ? [0.18, 0.22, 0.12, 0] : [0.24, 0.18, 0.12, 0];
+    A.cbox(x - 40, 0.02, z - 18, x + 40, 0.05, z + 18, c, 'Y');
+  }
+  // hills and castles beyond (no colliders) — the lord's castle still watches over the village
+  for (let k2 = 0; k2 < 46; k2++) {
+    const a = k2 / 46 * TAU + G.r(-0.03, 0.03); const r = G.r(560, 760); const x = Math.sin(a) * r * 1.1, z = -Math.cos(a) * r * 0.75 - 120;
+    if (z > WATER_Z - 20) continue;
+    const w = G.r(140, 260), h = G.r(40, 110);
+    A.addGeo(cylGeo(w * 0.5, w * 0.12, h, 9, false), M4.compose(M4.create(), x, -2, z, 0, G.r(0, 3), 0), [0.1, 0.13, 0.11, 0]);
+    if (G.chance(0.16)) {
+      const cy = h - 6, cs = G.r(18, 30);
+      A.box(x - cs / 2, cy, z - cs / 2, x + cs / 2, cy + cs * 0.9, z + cs / 2, { faces: 'xXzZ', cell: CELL.tower, su: 24, sv: 25.6, col: [0.45, 0.46, 0.5, 0] });
+      M.spire(A, x - cs / 2, z - cs / 2, x + cs / 2, z + cs / 2, cy + cs * 0.9, cs * 0.7, [0.16, 0.17, 0.2], 1);
+      if (G.chance(0.6)) this.B.glow.cbox(x - 1, cy + cs * 0.5, z + cs / 2, x + 1, cy + cs * 0.5 + 2, z + cs / 2 + 0.2, [1, 0.6, 0.25, 1.2]);
+    }
+  }
+  // the far shore across the bay: a fishing hamlet and its chapel
+  for (let x = -900; x < 900; x += G.r(24, 70)) {
+    const w = G.r(10, 22), h = G.r(5, 9), z = G.r(620, 700);
+    A.box(x, -2, z, x + w, h, z + w * 0.6, { faces: 'xXzZ', cell: G.pick([CELL.plaster, CELL.house, CELL.house, CELL.stone]), su: 24, sv: 25.6, col: [0.5, 0.52, 0.58, 0] });
+    M.gable(A, x, z, x + w, z + w * 0.6, h, Math.min(w, w * 0.6) * 0.6, [0.34, 0.3, 0.22], [0.5, 0.52, 0.58], 0.5);
+    if (G.chance(0.06)) { A.box(x + w / 2 - 3, h, z + 2, x + w / 2 + 3, h + 14, z + 8, { faces: 'xXzZ', cell: CELL.stone, su: 24, sv: 25.6, col: [0.5, 0.52, 0.58, 0] }); M.spire(A, x + w / 2 - 3, z + 2, x + w / 2 + 3, z + 8, h + 14, 9, [0.2, 0.2, 0.24], 1); }
+  }
+};

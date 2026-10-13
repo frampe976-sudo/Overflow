@@ -11,7 +11,8 @@ const VIEWS = [
   ['hauteur', 120, 70, 140, 0, 0, -60],
   ['place', -60, 4, -20, -10, 6, -60],
   ['toits', -20, 38, 60, -70, 6, -10],
-  ['marche', -88, 3, 22, -110, 3, -5]
+  ['marche', -88, 3, 22, -110, 3, -5],
+  ['palissade', -488, 30, 110, -420, 4, 20]
 ];
 (async () => {
   fs.mkdirSync(out, { recursive: true });
