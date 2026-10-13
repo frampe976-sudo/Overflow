@@ -4,7 +4,7 @@
    ===================================================================== */
 const Menus = {
   cur: null, stack: [], items: [], fi: 0, selCase: -1, ctab: null,
-  screens: ['scr-loading', 'scr-title', 'scr-missions', 'scr-multi', 'scr-options', 'scr-controls', 'scr-pause', 'scr-map', 'scr-result', 'scr-nogl', 'scr-destin'],
+  screens: ['scr-loading', 'scr-title', 'scr-missions', 'scr-multi', 'scr-options', 'scr-controls', 'scr-pause', 'scr-map', 'scr-result', 'scr-nogl', 'scr-destin', 'scr-gear'],
   init() {
     document.querySelectorAll('#menu-title .mi').forEach(b => b.addEventListener('click', () => this.titleAct(b.dataset.go)));
     document.querySelectorAll('#menu-pause .mi').forEach(b => b.addEventListener('click', () => this.pauseAct(b.dataset.go)));
@@ -34,6 +34,7 @@ const Menus = {
     if (id === 'scr-controls') this.renderControls(this.ctab || (Input.device === 'touch' ? 'touch' : Input.device));
     if (id === 'scr-pause') this.renderPause();
     if (id === 'scr-destin') this.renderDestin();
+    if (id === 'scr-gear') this.renderGear();
     if (id === 'scr-multi') { this.collect(root); this.mpRender(); HUD.updateTouchVisibility(); return; }
     if (id === 'scr-title' || id === 'scr-pause') requestAnimationFrame(() => this.fitBrand());
     if (id === 'scr-title') { const t = $('train-sub'); if (t) t.textContent = Save.data.trained ? 'Terminé · à refaire quand vous voulez' : 'Toutes les actions, pas à pas'; this.renderContinue(); }
@@ -104,6 +105,7 @@ const Menus = {
     else if (go === 'multi') this.mpOpen();
     else if (go === 'controls') this.show('scr-controls');
     else if (go === 'destin') this.show('scr-destin');
+    else if (go === 'gear') this.show('scr-gear');
     else if (go === 'options') this.show('scr-options');
     else if (go === 'fullscreen') this.toggleFullscreen();
   },
@@ -215,6 +217,26 @@ const Menus = {
     // re-rendering rebuilds the buttons: keep the focus on the one that was used
     this.collect($('scr-destin')); if (kt) { const i = this.items.findIndex(e => (e.dataset.tal || e.dataset.dest) === kt); if (i >= 0) this.focus(i, true); }
   },
+  /* ---------- Équipement: found weapons, forge, recycling ---------- */
+  renderGear() {
+    Loot.starter(); const g = Loot.data(), items = g.items.slice().sort((a, b) => (b.id === g.eq) - (a.id === g.eq) || b.rarity - a.rarity || Loot.score(b) - Loot.score(a));
+    if (!Loot.byId(this.gearSel)) this.gearSel = g.eq || (items[0] && items[0].id);
+    $('gear-sub').textContent = `${items.length} / ${BAG_MAX} armes · ${g.shards} éclats`;
+    const props = it => Object.keys(it.aff).map(k => AFFIX[k].fmt(Loot.mods(it)[k]));
+    $('glist').innerHTML = items.map(it => `<button class="btn gitem${it.id === this.gearSel ? ' sel' : ''}" data-it="${it.id}" style="--rc:${RARITY[it.rarity].col}">${it.id === g.eq ? '<span class="eq">ÉQUIPÉE</span>' : ''}<b>${esc(it.name)}</b><small>${WEAPONS[it.base].name} · niveau ${it.lvl} · ${props(it).join(' · ')}</small></button>`).join('') || '<div class="sub">Aucune arme : battez des ennemis pour en trouver.</div>';
+    const it = Loot.byId(this.gearSel);
+    $('gdetail').innerHTML = it ? `<h3 style="color:${RARITY[it.rarity].col}">${esc(it.name)}</h3><div class="rk" style="color:${RARITY[it.rarity].col}">${RARITY[it.rarity].name} · ${WEAPONS[it.base].name} · niveau ${it.lvl}</div><ul>${props(it).map(p => `<li>${p}</li>`).join('')}</ul>
+      <div class="row-btns">${it.id === g.eq ? '<button class="btn" data-ga="unequip">Ranger</button>' : '<button class="btn primary" data-ga="equip">Équiper</button>'}<button class="btn" data-ga="forge"${it.lvl >= 10 || g.shards < Loot.forgeCost(it) ? ' disabled' : ''}>Forger · ${Loot.forgeCost(it)} éclats</button><button class="btn" data-ga="salvage">Recycler · +${Loot.value(it)}</button></div>` : '';
+    const keep = this.items[this.fi], kt = keep && (keep.dataset.it || keep.dataset.ga);
+    $('glist').querySelectorAll('[data-it]').forEach(b => b.addEventListener('click', () => { this.gearSel = b.dataset.it; this.renderGear(); }));
+    $('gdetail').querySelectorAll('[data-ga]').forEach(b => b.addEventListener('click', () => {
+      const a = b.dataset.ga, id = this.gearSel;
+      if (a === 'equip') Loot.equip(id); else if (a === 'unequip') Loot.unequip(); else if (a === 'forge') { if (!Loot.forge(id)) { Snd.play('back'); return; } }
+      else if (a === 'salvage') { Loot.salvage(id); this.gearSel = null; }
+      Snd.play('ok'); this.renderGear();
+    }));
+    this.collect($('scr-gear')); if (kt) { const i = this.items.findIndex(e => (e.dataset.it || e.dataset.ga) === kt); if (i >= 0) this.focus(i, true); }
+  },
   /* ---------- controls ---------- */
   renderControls(tab) {
     this.ctab = tab; $('ctabs').querySelectorAll('button').forEach(b => b.classList.toggle('sel', b.dataset.tab === tab));
@@ -254,6 +276,7 @@ const Menus = {
     else if (go === 'restart') { if (MP.on && MP.state === 'play') { if (MP.host) MP.endGame(); else Game.toMenu(); } else if (Game.def && Game.def.patrol) Game.missionComplete(); else Game.startMission(Game.def); }
     else if (go === 'map') this.show('scr-map');
     else if (go === 'destin') this.show('scr-destin');
+    else if (go === 'gear') this.show('scr-gear');
     else if (go === 'controls') this.show('scr-controls');
     else if (go === 'options') this.show('scr-options');
     else if (go === 'quit') Game.toMenu();

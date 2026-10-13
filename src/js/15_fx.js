@@ -104,6 +104,7 @@ const Pickups = {
     else if (t === 'nades') { if (P.nades >= 8) return; const n = Math.min(8 - P.nades, p.count || 2); P.nades += n; HUD.nadesChanged(); HUD.toast('Grenades', '+' + n, 'gold', true); Snd.play('pickup', P.pos); }
     else if (t === 'badge') { Game.collectBadge(p); }
     else if (t === 'item') { if (p.onCollect && p.onCollect(p) === false) return; Snd.play('pickup', P.pos); }
+    else if (t === 'loot') Loot.collect(p, P);
     p.alive = false;
   },
   // centre of a part's bounding box (weapons spin about it)
@@ -126,14 +127,15 @@ const Pickups = {
         case 'weapon': geo = WEAPONS[p.weapon] && WEAPONS[p.weapon].part; col = [1, 1, 1]; e = 0.25; glow = [1, 0.7, 0.3]; scale = 1.3; break;
         case 'nades': geo = 'nade'; col = [1, 1, 1]; e = 0.2; glow = [1, 0.45, 0.3]; scale = 2; break;
         case 'badge': geo = 'badgeItem'; col = [1, 0.75, 0.25]; e = 2.2; glow = [1, 0.8, 0.3]; break;
+        case 'loot': geo = p.item.base; col = [1, 1, 1]; e = 0.25 + p.item.rarity * 0.25; glow = RARITY[p.item.rarity].glow; scale = 1.3; break;
         case 'item': geo = p.geo || 'crate'; col = p.col || [0.4, 0.3, 0.2]; e = p.e || 0.3; glow = p.glow || [0.4, 0.9, 1]; scale = p.scale || 1; break;
       }
       if (!geo || !I[geo]) continue;
       const lift = p.type === 'item' ? 0 : 0.55 + bob;
       // weapons turn on themselves, upright (hand weapons are modelled in the hand frame: its +z is the gun's up)
-      const hand = p.type === 'weapon' && Arms.INFO[geo] && Arms.INFO[geo].hand, rx = hand ? -Math.PI / 2 : 0;
+      const hand = (p.type === 'weapon' || p.type === 'loot') && Arms.INFO[geo] && Arms.INFO[geo].hand, rx = hand ? -Math.PI / 2 : 0;
       M4.compose(m, p.pos.x, p.pos.y + lift, p.pos.z, rx, p.type === 'item' ? 0 : spin, 0, scale, scale, scale);
-      if (p.type === 'weapon') { const c = this.centre(geo); M4.compose(tmp, -c[0], -c[1], -c[2], 0, 0, 0); } else M4.identity(tmp);
+      if (p.type === 'weapon' || p.type === 'loot') { const c = this.centre(geo); M4.compose(tmp, -c[0], -c[1], -c[2], 0, 0, 0); } else M4.identity(tmp);
       I[geo].pushMul(m, tmp, col[0], col[1], col[2], e);
       Render.addParticles.push(p.pos.x, p.pos.y + 0.04, p.pos.z, 1.3 + Math.sin(p.t * 3) * 0.1, glow[0], glow[1], glow[2], 0.7, 0, 1, 1, true);
       if (p.type === 'badge' || p.beam) Render.beams.push(p.pos.x, p.pos.y, p.pos.z, p.pos.x, p.pos.y + 6, p.pos.z, 0.25, glow[0], glow[1], glow[2], 0.35, Cam.pos);

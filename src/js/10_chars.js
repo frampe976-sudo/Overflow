@@ -302,7 +302,7 @@ function weaponPart(w) {
   return pt;
 }
 // parts that are weapons (shiny materials, drawn with vertex colours)
-const WEAPON_GEOS = { pistol: 1, uzi: 1, rifle: 1, ak: 1, shotgun: 1, bat: 1, knife: 1, wrench: 1, staff: 1, grenade: 1, nade: 1 };
+const WEAPON_GEOS = { pistol: 1, uzi: 1, rifle: 1, ak: 1, shotgun: 1, bat: 1, knife: 1, wrench: 1, staff: 1, grenade: 1, nade: 1, sword: 1, hammer: 1, dagger: 1, sceptre: 1 };
 
 /* ---------- renderer for all characters ---------- */
 const CharRender = {

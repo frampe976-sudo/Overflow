@@ -29,7 +29,8 @@ const HUD = {
   carMode(on, ride) { this.el['tset-foot'].hidden = on; this.el['tset-car'].hidden = !on; document.body.classList.toggle('incar', !!on); document.body.classList.toggle('ride', !!(on && ride)); this.lastPromptKey = null; },
   weaponChanged() {
     const P = Game.player; if (!P) return;
-    const W = WEAPONS[P.cur] || WEAPONS.fists; this.el.wname.textContent = W.name;
+    const W = WEAPONS[P.cur] || WEAPONS.fists; this.el.wname.textContent = Loot.name(P);
+    const it = P.gear && P.cur === P.gear.base ? P.gear : null; this.el.wname.style.color = it ? RARITY[it.rarity].col : '';
     this.el.weapon.classList.toggle('firearm', !!W.firearm);
     // touch: with a gun in hand the fire button takes the place of punch + kick
     this.el['tb-fire'].hidden = !W.firearm; this.el['tb-punch'].hidden = !!W.firearm; this.el['tb-kick'].hidden = !!W.firearm;
@@ -161,7 +162,7 @@ const HUD = {
       // drive-by button: only in a car with a loaded gun; its label carries the ammo count
       const cw = inCar ? P.carWeapon() : null; if (E['tb-cfire'].hidden === !!cw) E['tb-cfire'].hidden = !cw;
       if (cw) { const i = P.inv[cw], cl = P.reloadT > 0 ? 'Recharge' : `Tir ${i.mag}/${i.res}`; if (cl !== this._cfl) { this._cfl = cl; E['tb-cfire-l'].textContent = cl; } }
-      if (tw) { const nm = (WEAPONS[P.cur] || WEAPONS.fists).name; if (nm !== this._twn) { this._twn = nm; E['tbw-name'].textContent = nm; } const am = P.isFirearm() ? (P.reloadT > 0 ? '…' : ammoTxt) : ''; if (am !== this._twa) { this._twa = am; E['tbw-ammo'].textContent = am; } }
+      if (tw) { const nm = Loot.name(P); if (nm !== this._twn) { this._twn = nm; E['tbw-name'].textContent = nm; } const am = P.isFirearm() ? (P.reloadT > 0 ? '…' : ammoTxt) : ''; if (am !== this._twa) { this._twa = am; E['tbw-ammo'].textContent = am; } }
     }
     // grenades: chip (keyboard / pad) and touch button, shown while some are left
     const nn = P.nades || 0, nShow = nn > 0 && !inCar;

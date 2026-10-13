@@ -105,7 +105,7 @@ const Destin = {
   /* ---------- the Fate gauge ---------- */
   gain(P, v) {
     if (!P || P !== Game.player || P.reckT > 0) return;
-    const was = P.fate; P.fate = Math.min(100, P.fate + v * (P.fm ? P.fm.fate : 1));
+    const was = P.fate; P.fate = Math.min(100, P.fate + v * (P.fm ? P.fm.fate : 1) * Loot.fateK(P));
     if (was < 100 && P.fate >= 100) { HUD.toast('Destin prêt', 'Jugement : ' + Input.glyphFate(), 'gold', true); Snd.play('perfect', P.pos, 0.6); }
   },
   // a blow of the robot landed: crits, Fate, marks during the Reckoning
@@ -120,7 +120,8 @@ const Destin = {
     const M = att.fm; let k = 1;
     if (A.d.fin) k *= 1 + M.fin;
     if (att.reckT > 0) k *= 1.6;
-    A.crit = M.crit > 0 && Math.random() < M.crit; if (A.crit) k *= 2;
+    k *= Loot.dmgK(att); const crit = M.crit + Loot.crit(att); // the weapon in hand adds its own properties
+    A.crit = crit > 0 && Math.random() < crit; if (A.crit) k *= 2;
     return k;
   },
   /* ---------- Reckoning (Jugement) ---------- */

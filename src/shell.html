@@ -501,6 +501,21 @@ body.reckoning #reckvig { opacity: 1; }
 .btn.dcard.sel { border-color: #c58bff; background: rgba(197,139,255,0.14); }
 .btn.dcard.locked { opacity: 0.4; }
 @media (max-width: 720px) { .trees { grid-template-columns: 1fr; } }
+/* ---------- Équipement ---------- */
+.gearbox { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 12px; }
+.glist { overflow-y: auto; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
+.btn.gitem { text-align: left; font-family: var(--f-ui); font-size: 13px; padding: 7px 10px; border-left: 4px solid var(--rc); text-transform: none; letter-spacing: 0; }
+.btn.gitem b { font-family: var(--f-display); font-size: 17px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--rc); }
+.btn.gitem small { display: block; color: var(--muted); font-size: 12px; }
+.btn.gitem.sel { background: rgba(255,255,255,0.09); }
+.btn.gitem .eq { float: right; font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.12em; color: var(--good); }
+.gdetail { border: 1px solid var(--line); border-radius: 6px; padding: 12px; background: rgba(255,255,255,0.03); overflow-y: auto; min-height: 0; }
+.gdetail h3 { margin: 0; font-family: var(--f-display); font-weight: 900; font-size: 24px; letter-spacing: 0.03em; text-transform: uppercase; }
+.gdetail .rk { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 8px; }
+.gdetail ul { margin: 0 0 10px; padding-left: 18px; color: var(--text); font-size: 14px; line-height: 1.5; }
+.gdetail .row-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.gdetail .btn { font-size: 15px; padding: 7px 12px; }
+@media (max-width: 720px) { .gearbox { grid-template-columns: 1fr; } }
 </style>
 
 <canvas id="gl" tabindex="0" aria-label="Vue du jeu"></canvas>
@@ -599,6 +614,7 @@ body.reckoning #reckvig { opacity: 1; }
       <button class="mi" data-go="patrol">Patrouille libre<small>Crimes aléatoires dans toute la ville</small></button>
       <button class="mi" data-go="multi" id="mi-multi">Brigade de nuit<small id="multi-sub">Multijoueur en réseau local · 2 à 6 robots</small></button>
       <button class="mi" data-go="destin">Destin<small id="destin-sub">Talents et Destinées</small></button>
+      <button class="mi" data-go="gear">Équipement<small>Armes trouvées, forge</small></button>
       <button class="mi" data-go="controls">Commandes</button>
       <button class="mi" data-go="options">Options</button>
       <button class="mi" data-go="fullscreen" id="mi-fs">Plein écran</button>
@@ -683,6 +699,18 @@ body.reckoning #reckvig { opacity: 1; }
   </div>
 </div>
 
+<div class="screen scrim-full" id="scr-gear" hidden>
+  <div class="wrap">
+    <h2 class="sh">Équipement</h2>
+    <div class="sub" id="gear-sub"></div>
+    <div class="gearbox">
+      <div class="glist" id="glist"></div>
+      <div class="gdetail" id="gdetail"></div>
+    </div>
+    <div class="row-btns" style="margin-top:14px"><button class="btn" data-act="back">Retour</button></div>
+  </div>
+</div>
+
 <div class="screen scrim" id="scr-pause" hidden>
   <div class="wrap vcenter">
     <h2 class="sh">Pause</h2>
@@ -695,6 +723,7 @@ body.reckoning #reckvig { opacity: 1; }
         <button class="mi" data-go="restart">Recommencer</button>
         <button class="mi" data-go="map">Carte</button>
         <button class="mi" data-go="destin">Destin</button>
+        <button class="mi" data-go="gear">Équipement</button>
         <button class="mi" data-go="controls">Commandes</button>
         <button class="mi" data-go="options">Options</button>
         <button class="mi" data-go="quit">Quitter la mission</button>

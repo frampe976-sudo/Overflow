@@ -8,6 +8,11 @@ const WEAPONS = {
   knife: { name: 'Couteau', melee: true, part: 'knife', lethal: true },
   wrench: { name: 'Clé à molette', melee: true, part: 'wrench' },
   staff: { name: 'Bâton rituel', melee: true, part: 'staff' },
+  // fantasy weapons, found as loot (Destin): their combos are in COMBOS, their bonuses on the item
+  sword: { name: 'Épée longue', melee: true, part: 'sword', loot: true },
+  hammer: { name: 'Marteau de guerre', melee: true, part: 'hammer', loot: true },
+  dagger: { name: 'Dague', melee: true, part: 'dagger', lethal: true, loot: true },
+  sceptre: { name: 'Sceptre', melee: true, part: 'sceptre', loot: true },
   // dmg per bullet (pellet), pen = share of body armour it goes through, fall = [from m, to m, damage lost at the far end],
   // bloom = spread growth per shot when fired without pause (the AK climbs, the carbine stays put)
   pistol: { name: 'Pistolet', firearm: true, part: 'pistol', mag: 12, dmg: 30, rof: 0.24, spread: 0.02, range: 60, snd: 'pistol', reload: 1.1, pellets: 1, auto: false, pen: 0.25, fall: [25, 60, 0.35], bloom: 0.2 },
@@ -306,7 +311,7 @@ const Combat = {
         any = true; A.connected = true;
         if (r === true && rip && t.team !== 'civ') { att.riposteT = 0; Game.award(50, t.pos, 'RIPOSTE', 'feat'); Game.hitstop(0.1); CamCtl.shake(0.4); Render.post.extraFlash = 0.05; }
         if (r === true) {
-          Destin.onHit(att, t, A);
+          Destin.onHit(att, t, A); if (att === Game.player) Loot.onHit(att, t, dmg, A);
           if (A.crit && att === Game.player) HUD.pop(t.pos.x, t.pos.y + 2.3, t.pos.z, 'CRITIQUE', 'feat');
           Snd.play(d.snd === 'flesh' && t.app.robot ? 'clank' : d.snd || 'punch', t.pos, 0.9);
           const hx = (att.pos.x + t.pos.x) / 2, hz = (att.pos.z + t.pos.z) / 2;
