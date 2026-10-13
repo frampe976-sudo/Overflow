@@ -370,6 +370,20 @@ const Journal = {
   }
 };
 
+/* ---------- medieval names of the districts (display only) ----------
+   The district names stay the keys of the ambience, the map and the campaign (08b, 05, 17, 18b);
+   only what the player reads is renamed: the area banner and the labels of the map. */
+const MEDIEVAL_NAMES = {
+  'Commissariat central': 'Corps de garde', 'Commissariat': 'Corps de garde', 'Vieille ville': 'Vieille Cité', 'Marché de nuit': 'Marché aux Sels',
+  'Place de la Marée': 'Place des Lanternes', 'Centre': 'Cœur de Saline', 'Les Entrepôts': 'Les Greniers', 'Les Docks': 'Quai des Grues', 'Docks': 'Quai des Grues', 'Vieux phare': 'Phare noir',
+  'Zone industrielle': 'Faubourg des Tanneurs', 'Dépôt pétrolier': 'Les Huileries', 'Gare de triage': 'Relais des Diligences', 'Gare centrale': 'Grand Relais',
+  'Centrale électrique': 'Moulins de la Marée', 'Les Arcades': 'Halles couvertes', 'Caserne des pompiers': 'Tour du Guet-Feu', 'Parc municipal': 'Jardin des Pendus',
+  'Hôtel de ville': 'Hôtel des Échevins', 'Cité financière': 'Quartier des Changeurs', 'Boulevard des Néons': 'Rue des Lanternes de sel', 'Cimetière de l’Ouest': 'Cimetière des Noyés',
+  'Cité des Tilleuls': 'Clos des Tilleuls', 'Stade de la Marée': 'Lices de la Marée', 'Marché aux puces': 'Foire aux Hardes', 'Hôpital Saint-Roch': 'Hospice Saint-Roch',
+  'Université': 'Collège des Lampistes', 'Port de plaisance': 'Port des Barques', 'Chantier naval': 'Ventre de la Baleine', 'Gare maritime': 'Embarcadère royal'
+};
+const medievalName = n => MEDIEVAL_NAMES[n] || n;
+
 /* ---------- the doors into the story: title menu, pause menu ---------- */
 (function recitInit() {
   const css = document.createElement('style');
@@ -432,7 +446,11 @@ body:not(.story-on) #story-tags { display: none; }
   const pd = document.querySelector('#menu-pause [data-go="destin"]');
   if (pd) { const b = document.createElement('button'); b.className = 'mi'; b.dataset.go = 'journal'; b.textContent = 'Journal'; pd.after(b); b.addEventListener('click', () => Journal.open()); }
   Talk.init(); Journal.init();
+  // district names: the banner shown when entering an area, and the labels of the map once built
+  const area = document.getElementById('area');
+  if (area) new MutationObserver(() => { const t = medievalName(area.textContent); if (t !== area.textContent) area.textContent = t; }).observe(area, { childList: true, characterData: true, subtree: true });
+  const build0 = HUD.buildMap; HUD.buildMap = function () { const r = build0.apply(this, arguments); if (this.mapLabels) for (const l of this.mapLabels) l.t = medievalName(l.t); return r; };
   // the name tags only exist while the story is played
   setInterval(() => document.body.classList.toggle('story-on', !!(Game.def && Game.def.story && Game.mode === 'play')), 250);
-  queueMicrotask(() => { if (window.__OF) Object.assign(window.__OF, { Story, Talk, Journal, RECIT, QUESTS, DIALOGUES, STORY_NPCS, CODEX }); });
+  queueMicrotask(() => { if (window.__OF) Object.assign(window.__OF, { MEDIEVAL_NAMES, Story, Talk, Journal, RECIT, QUESTS, DIALOGUES, STORY_NPCS, CODEX }); });
 })();

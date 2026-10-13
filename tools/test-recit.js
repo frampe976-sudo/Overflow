@@ -95,6 +95,8 @@ const check = (name, cond, info) => (cond ? ok : ko).push(name + (cond ? '' : ' 
   // the save keeps everything: a new run of the story mode starts where we left it
   const sv = await E(() => { __OF.Game.startMission(__OF.RECIT); run(5); const d = JSON.parse(localStorage.getItem(Object.keys(localStorage)[0])); return { quests: Object.keys(d.story.quests).length, maelle: !!S.npcs.maelle, mp: S.npcs.maelle && Math.round(S.npcs.maelle.pos.x), chapel: Math.round(__OF.World.spots.chapel.x) }; });
   check('sauvegarde : tout est gardé, Maelle épargnée prie à la chapelle', sv.quests === 5 && sv.maelle && Math.abs(sv.mp - sv.chapel) < 8, sv);
+  const nm = await E(() => { const el = document.getElementById('area'); el.textContent = 'Parc municipal'; return new Promise(r => setTimeout(() => r({ banner: el.textContent, map: (__OF.HUD.buildMap(), __OF.HUD.mapLabels.some(l => l.t === 'Hôtel des Échevins') && !__OF.HUD.mapLabels.some(l => l.t === 'Hôtel de ville')), key: __OF.World.districtAt(__OF.World.spots.park.x, __OF.World.spots.park.z) }), 50)); });
+  check('noms médiévaux à l’écran (bannière, carte), clés inchangées', nm.banner === 'Jardin des Pendus' && nm.map && nm.key === 'Parc municipal', nm);
   check('aucune erreur JavaScript', errs.length === 0, errs);
   console.log(ok.map(s => '✓ ' + s).concat(ko.map(s => '✗ ' + s)).join('\n'));
   await b.close(); process.exit(ko.length ? 1 : 0);

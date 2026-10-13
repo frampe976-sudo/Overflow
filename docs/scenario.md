@@ -37,6 +37,8 @@ Ancienne cité royale du royaume d'**Aubemer**, port du sel et des lanternes. Le
 | Phare | **Le Phare noir**, dont la lampe tenait la Marée à distance (chapitre IV) |
 | Épave, chantier | **Le Ventre de la Baleine**, carcasse d'un vaisseau royal (chapitre III) |
 
+Les autres quartiers portent aussi des noms médiévaux à l'écran (bannière de quartier et carte) : Faubourg des Tanneurs, Grand Relais, Moulins de la Marée, Halles couvertes, Quartier des Changeurs, Rue des Lanternes de sel, Lices de la Marée, Foire aux Hardes, Hospice Saint-Roch, Collège des Lampistes, Port des Barques, Embarcadère royal… La table complète est `MEDIEVAL_NAMES` dans `src/js/19d_recit.js`.
+
 ### La magie
 - **La Marée** : magie des fosses. Elle corrompt, mais elle *écrit* aussi : chaque goutte porte un fil de destin.
 - **Le sel-de-lune** : ce que la Marée laisse derrière elle. Il fait briller les lanternes et bat dans le cœur des golems.
