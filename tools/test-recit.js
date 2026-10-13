@@ -43,6 +43,8 @@ const check = (name, cond, info) => (cond ? ok : ko).push(name + (cond ? '' : ' 
   const o1 = await E(() => { pick('désolé'); cont(); pick('Par où'); cont(); const r = { eveil: S.q('eveil').state, cloche: S.step('cloche'), appr: S.approval('okafor') }; pick('J’y vais'); return r; });
   check('Okafor : prologue terminé, « La Cloche engloutie » commence', o1.eveil === 'done' && o1.cloche === 'rumeurs', o1);
   check('approbation d’Okafor +10', o1.appr === 10, o1);
+  const sk = await E(() => { const c = __OF.World.spots.cemetery, P = __OF.Game.player, p0 = P.pos.clone ? P.pos.clone() : { x: P.pos.x, z: P.pos.z }; go(c.x + 20, c.z); run(3); const r = S.step('cloche'); S.data().quests.cloche.step = 'rumeurs'; S.enter('cloche'); go(p0.x, p0.z); run(3); return r; });
+  check('aller au cimetière sans enquêter lance quand même le combat', sk === 'combat', sk);
   // a Destin point opens the locked choices: Fredo, with Finesse
   const f1 = await E(() => { const D = __OF.Destin; D.buy('breath'); D.buy('breath'); talk('fredo'); cont(); const o = TK.opts.find(x => x.need && x.need.finesse); const r = { locked: o.locked }; pick('mains vertes'); cont(); r.nid = TK.nid; r.step = S.step('cloche'); r.flag = S.flag('fredo_respect'); TK.close(); D.reset(); return r; });
   check('avec 2 points en Finesse, le choix s’ouvre et fait avancer la quête', f1.locked === false && f1.flag === true && f1.step === 'cimetiere', f1);

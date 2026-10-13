@@ -62,7 +62,11 @@ Object.assign(QUESTS, {
     title: 'La Cloche engloutie', kind: 'main', xp: 500,
     sum: S => ({ epargnee: 'Vous avez épargné Sœur Maelle. ', livree: 'Vous avez livré Sœur Maelle au Guet. ', jugee: 'Vous avez jugé Sœur Maelle. ' }[S.flag('maelle')] || '') + ({ paye: 'Vous avez accepté l’or de Vasseur.', menace: 'Vous avez menacé Vasseur.', feint: 'Vous avez feint d’accepter le marché de Vasseur.' }[S.flag('vasseur')] || ''),
     steps: {
-      rumeurs: { text: 'Trouvez qui fait sonner la cloche : interrogez Fredo sur la place des Lanternes, ou Nadia au marché aux Sels', tag: 'Rumeurs', where: S => nearestOf(S, ['fredo', 'nadia']) },
+      rumeurs: {
+        text: 'Trouvez qui fait sonner la cloche : interrogez Fredo sur la place des Lanternes, ou Nadia au marché aux Sels', tag: 'Rumeurs', where: S => nearestOf(S, ['fredo', 'nadia']),
+        // the robot found the cemetery on its own: the story follows it, nobody needs to tell it the way
+        update(rt, S) { const c = World.spots.cemetery, P = Game.player; if (dist2D(c.x, c.z, P.pos.x, P.pos.z) < 34) { S.codex('enfants'); S.advance('cloche', 'combat'); } }
+      },
       cimetiere: {
         text: 'Rendez-vous au cimetière des noyés, derrière la chapelle Sainte-Ondine', tag: 'Cimetière', where: () => spotPos('cemetery'),
         update(rt, S) { const c = World.spots.cemetery, P = Game.player; if (dist2D(c.x, c.z, P.pos.x, P.pos.z) < 34) S.advance('cloche', 'combat'); }

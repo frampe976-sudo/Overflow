@@ -118,3 +118,12 @@ Descente dans la Basse-Saline engloutie. Seize, devenu le Léviathan, garde la M
 - **Journal** (touche **N** ou menu pause) : quêtes en cours et terminées, codex, relations.
 - **Codex** : quinze entrées de lore débloquées en parlant et en explorant.
 - **Récompenses** : chaque quête donne de l'expérience, donc des points de Destin.
+
+## 8. Principes de mise en scène
+
+Ces principes reprennent les quatre étapes du tuto « Créer et animer sa partie de jeu de rôle » partagé dans le projet, adaptées au jeu vidéo.
+
+1. **Poser la base de chaque chapitre** : une situation initiale, un enjeu et une direction. Pour le chapitre I : la cloche sonne, la Marée monte à chaque coup, il faut trouver qui la fait sonner.
+2. **Découper en scènes courtes et claires** : chaque étape de quête est une scène, avec un lieu, un personnage ou un combat, et une sortie nette (un choix, un objet, une révélation).
+3. **Anticiper l'imprévu** : le joueur peut sauter une scène sans bloquer l'histoire. S'il va au cimetière sans avoir enquêté, le combat commence quand même. Chaque choix moral a une suite écrite pour toutes ses branches, et une question non posée ne ferme jamais la quête.
+4. **Tenir le rythme** : alterner parole, exploration et combat ; pas plus de trois pages de texte avant un choix ; une révélation ou une récompense à la fin de chaque scène.
