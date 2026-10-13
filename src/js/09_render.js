@@ -3,8 +3,9 @@
    ===================================================================== */
 const Env = {
   // night palette: dark neutral sky light, warm bounce from the sodium-lit streets, a brownish haze
-  hemiS: [0.056, 0.055, 0.068], hemiG: [0.05, 0.036, 0.026], moonD: [0.32, 0.82, -0.47], moonC: [0.055, 0.062, 0.09],
-  fogC: [0.078, 0.062, 0.062], fogD: 0.0105, horizon: [0.15, 0.092, 0.075], zenith: [0.009, 0.01, 0.02], rim: [0.13, 0.14, 0.19],
+  // medieval night: moonlight and blue haze over the roofs, the warm bounce of torches in the streets
+  hemiS: [0.05, 0.057, 0.078], hemiG: [0.05, 0.034, 0.022], moonD: [0.32, 0.82, -0.47], moonC: [0.072, 0.082, 0.12],
+  fogC: [0.052, 0.056, 0.074], fogD: 0.0098, horizon: [0.088, 0.092, 0.135], zenith: [0.007, 0.01, 0.026], rim: [0.12, 0.14, 0.2],
   flash: 0, flashT: 0, nextLightning: 12, rainK: 1, time: 0, storm: 0, dawn: 0, dawnTo: 0, base: null,
   // weather: rain (0 dry .. 0.3 drizzle .. 1 downpour .. 1.3 storm), cloud cover, wind, how wet the streets are
   rain: 0, rainTo: 0, cloud: 0.6, cloudTo: 0.6, wind: 0.3, windTo: 0.3, wet: 0.4, fogMul: 1, fogTo: 1, wstate: 'cloudy', wT: 60, lockW: null, palT: 0,

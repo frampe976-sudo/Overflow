@@ -149,12 +149,12 @@ const PROPS = { umbStick: 1, umbTop: 1, bag: 1, halo: 1 };
 // the light strips of the robots of a brigade (multiplayer): the first is the original Solis, the others only
 // change the colour of their strips, eyes and core, so each partner is told apart at a glance
 const ROBOT_ACCENTS = [
-  { n: 'Saline-17', css: '#4da3ff', light: [0.22, 0.3, 0.46] },
-  { n: 'Saline-18', css: '#ffb23d', glow: [1.0, 0.58, 0.12], eye: [1.0, 0.74, 0.28], light: [0.46, 0.3, 0.12] },
-  { n: 'Saline-19', css: '#47e08a', glow: [0.2, 1.0, 0.45], eye: [0.42, 1.0, 0.62], light: [0.14, 0.42, 0.22] },
-  { n: 'Saline-20', css: '#ff5cc8', glow: [1.0, 0.26, 0.78], eye: [1.0, 0.5, 0.88], light: [0.44, 0.14, 0.36] },
-  { n: 'Saline-21', css: '#ff6a4d', glow: [1.0, 0.32, 0.2], eye: [1.0, 0.55, 0.4], light: [0.46, 0.18, 0.12] },
-  { n: 'Saline-22', css: '#b07cff', glow: [0.62, 0.4, 1.0], eye: [0.78, 0.62, 1.0], light: [0.3, 0.2, 0.46] }
+  { n: 'Saline-17', css: '#e89a40', light: [0.46, 0.28, 0.1] },
+  { n: 'Saline-18', css: '#e8d070', glow: [1.0, 0.85, 0.4], eye: [1.0, 0.92, 0.6], light: [0.46, 0.4, 0.2] },
+  { n: 'Saline-19', css: '#7fc890', glow: [0.45, 0.9, 0.55], eye: [0.62, 1.0, 0.7], light: [0.18, 0.36, 0.22] },
+  { n: 'Saline-20', css: '#c88ad0', glow: [0.85, 0.5, 0.9], eye: [0.95, 0.7, 1.0], light: [0.36, 0.2, 0.36] },
+  { n: 'Saline-21', css: '#e86a4a', glow: [1.0, 0.36, 0.2], eye: [1.0, 0.55, 0.4], light: [0.46, 0.18, 0.12] },
+  { n: 'Saline-22', css: '#8ab0e0', glow: [0.55, 0.72, 1.0], eye: [0.75, 0.85, 1.0], light: [0.22, 0.28, 0.42] }
 ];
 function makeAppearance(kind, rnd = Math.random) {
   const A = makeParts(kind, rnd);
@@ -240,9 +240,9 @@ function makeParts(kind, rnd) {
   }
   return A;
 }
-// police robot: navy armour, white plates, steel joints, blue light
+// the golem (once the police robot): weathered bronze armour, carved stone plates, iron joints, runes glowing like embers
 function robotParts(A, o = {}) {
-  const NAVY = o.body || [0.07, 0.12, 0.27], WHITE = o.plate || [0.7, 0.73, 0.78], STEEL = o.steel || [0.19, 0.2, 0.23], DARK = o.dark || [0.028, 0.03, 0.038], GLOW = o.glow || [0.12, 0.5, 1.0], EYE = o.eye || [0.2, 0.75, 1.0], GOLD = [1.0, 0.72, 0.25];
+  const NAVY = o.body || [0.2, 0.14, 0.085], WHITE = o.plate || [0.46, 0.44, 0.4], STEEL = o.steel || [0.13, 0.12, 0.11], DARK = o.dark || [0.045, 0.04, 0.035], GLOW = o.glow || [1.0, 0.55, 0.16], EYE = o.eye || [1.0, 0.72, 0.32], GOLD = [0.85, 0.62, 0.25];
   const L = A.parts;
   L.push(P('rPelvis', 'hips', NAVY), P('belt', 'hips', DARK), P('rAbdo', 'spine', STEEL), P('rAbdoRing', 'spine', NAVY, 0, pm(0, 0.06, 0)), P('rAbdoRing', 'spine', NAVY, 0, pm(0, 0.15, 0)));
   L.push(P('rChest', 'chest', NAVY), P('rPlate', 'chest', WHITE), P('rCore', 'chest', GLOW, 2.2), P('rPack', 'chest', DARK), P('rVent', 'chest', GLOW, 1.5, pm(0, 0.12, -0.19)), P('rVent', 'chest', GLOW, 1.5, pm(0, 0.05, -0.19)));
@@ -255,7 +255,7 @@ function robotParts(A, o = {}) {
     L.push(P('rEye', 'head', EYE, 1.8, pm(sx * 0.037, 0.1, 0.122, 0, sx * 0.28, 0)), P('rEar', 'head', STEEL, 0, pm(sx * 0.108, 0, 0, 0, ry, 0)), P('rEarRing', 'head', GLOW, 1.4, pm(sx * 0.14, 0, 0, 0, ry, 0)));
     const lt = P('rLight', 'head', GLOW, 2.2, pm(sx * 0.032, 0, 0)); lt.side = sx; L.push(lt);
   }
-  L.push(P('rAntenna', 'tail', STEEL), P('rTip', 'tail', [1, 0.25, 0.3], 2.6));
+  L.push(P('rAntenna', 'tail', STEEL), P('rTip', 'tail', [1, 0.5, 0.15], 2.0));
   for (const [s, sx] of [['L', 1], ['R', -1]]) {
     L.push(P('rJointL', 'sh' + s, STEEL), P('rPad', 'sh' + s, NAVY, 0, pm(sx * 0.012, 0.018, 0)), P('rUArm', 'sh' + s, STEEL), P('rUArmPlate', 'sh' + s, WHITE, 0, pm(sx * 0.045, 0, 0)));
     L.push(P('rJointM', 'el' + s, STEEL), P('rRing', 'el' + s, GLOW, 1.5), P('rFArm', 'el' + s, WHITE));
@@ -266,7 +266,7 @@ function robotParts(A, o = {}) {
   }
   // life: the eyes blink and narrow in a fight, flicker when knocked down and go dark when the unit is out;
   // the head light breathes on patrol and flashes blue/red in a fight; the antenna tip beacons
-  const OFF = [0.05, 0.06, 0.07], RED = o.red || [1.0, 0.18, 0.26];
+  const OFF = [0.05, 0.045, 0.04], RED = o.red || [1.0, 0.36, 0.1];
   const out = robotOut;
   const stunned = a => a.state === 'down' || a.state === 'ko';
   for (const pt of L) {
@@ -286,11 +286,11 @@ function robotParts(A, o = {}) {
         const t = a.an ? a.an.time : 0;
         if (out(a)) { pt.col = OFF; pt.e = 0; return; }
         pt.col = pt.side > 0 ? GLOW : RED;
-        if (a.combatT > 0) pt.e = Math.sin(t * 15 + (pt.side > 0 ? 0 : Math.PI)) > 0 ? 2.8 : 0.12;
+        if (a.combatT > 0) pt.e = 1.6 + 1.1 * Math.sin(t * 7 + (pt.side > 0 ? 0 : Math.PI)); // the runes flare in a fight
         else pt.e = 0.55 + 0.45 * Math.sin(t * 2.1 + (pt.side > 0 ? 0 : Math.PI));
       };
     }
-    if (pt.type === 'rTip') pt.dyn = a => { const t = a.an ? a.an.time : 0; pt.e = out(a) ? 0 : (t % 1.6 < 0.12 ? 3.2 : 0.5); };
+    if (pt.type === 'rTip') pt.dyn = a => { const t = a.an ? a.an.time : 0; pt.e = out(a) ? 0 : 1.2 + 0.6 * Math.sin(t * 2.3); }; // an ember on the crest, breathing
   }
 }
 const robotOut = a => a.state === 'dead' || a.dead;
@@ -336,7 +336,7 @@ const CharRender = {
     for (const k in PartGeo) {
       const robot = /^r[A-Z]/.test(k);
       const it = new Instanced(PartGeo[k], robot ? 48 : k === 'thigh' || k === 'shin' || k === 'uarm' || k === 'farm' || k === 'hand' || k === 'foot' ? 260 : 150);
-      it.mat = robot ? [70, 1.0, 1.1, 1.0] : WEAPON_GEOS[k] ? [58, 0.85, 0.55, 0.3] : [26, 0.35, 0.9]; this.inst[k] = it; Render.inst.push(it);
+      it.mat = robot ? [34, 0.55, 0.7, 0.35] : WEAPON_GEOS[k] ? [58, 0.85, 0.55, 0.3] : [26, 0.35, 0.9]; this.inst[k] = it; Render.inst.push(it);
     }
     for (let i = 0; i < NB; i++) this.bw.push(M4.create());
     this.ready = true;

@@ -62,8 +62,10 @@ const City = {
     step('zips', () => this.proceduralZips());
     step('roofs', () => { for (const info of this.pending) this.roofProps(info); });
     step('facades', () => this.facadeDetails());
+    if (typeof Medieval !== 'undefined' && Medieval.on) step('medieval', () => Medieval.dress(this));
     this.placeBadges();
     this.navData();
+    if (typeof Medieval !== 'undefined' && Medieval.on) Medieval.warmAll(B);
     const M = World.meshes;
     for (const k in B) if (B[k].vc) M[k] = ChunkMesh.split(B[k].build(), k);
     M.water = this.waterMesh();
