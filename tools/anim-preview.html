@@ -125,8 +125,8 @@ const clipGear = (clip, G) => G && G.gear ? G.gear : (CLIP_DEFS[clip].cat || 'he
 const BASE_GUARD = new Float32Array(STAND), BASE_READY = new Float32Array(STAND);
 applyLayer(BASE_GUARD, LAYERS.guard, 1); applyLayer(BASE_READY, LAYERS.ready, 1);
 const WM = []; for (let i = 0; i < NB; i++) WM.push(M4.create()); const _t = M4.create();
-function fk(p, yaw) {
-  M4.compose(WM[0], 0, 0, 0, p[0], yaw + p[1], p[2]);
+function fk(p, yaw, z = 0) {
+  M4.compose(WM[0], 0, 0, z, p[0], yaw + p[1], p[2]);
   for (let i = 1; i < NB; i++) {
     const b = BONES[i]; let ox = b[2], oy = b[3], oz = b[4];
     if (i === 1) { ox += p[HX]; oy += p[HY]; oz += p[HZ]; } else if (i === 6) ox = 0.19; else if (i === 9) ox = -0.19;
@@ -159,14 +159,39 @@ function legIK(p, side, tgt) {
   p[CH['an' + n]] = -(p[ix[0]] + p[ix[2]] + p[3]);
 }
 const POSE = new Float32Array(PSZ);
+// fighting stance of Anim.rest(): left foot forward, right foot back, both turned out (gw: guard weight)
+function stance(i, gw) {
+  const nx = i ? -0.11 : 0.11, nz = i ? -0.01 : 0.02, ny = i ? -0.1 : 0.1, gx = i ? -0.13 : 0.12, gz = i ? -0.12 : 0.13, gy = i ? -0.55 : -0.15;
+  return [lerp(nx, gx, gw), lerp(nz, gz, gw), lerp(ny, gy, gw)];
+}
+// feet: [dz, lift] of each foot relative to where the stance puts it, root-relative (see footwork)
+let FOOT = [[0, 0], [0, 0]];
 function poseAt(clip, u, gear) {
   const fists = gear === 'fists', B = fists ? BASE_GUARD : BASE_READY, C = CLIPS2[clip];
   POSE.set(B); if (C) clipEval(C, u, B, POSE);
-  const legs = C && C.legs || '', F = FEET[fists ? 'guard' : 'ready'];
-  if (!legs.includes('L')) legIK(POSE, 0, F[0]);
-  if (!legs.includes('R')) legIK(POSE, 1, F[1]);
+  const legs = C && C.legs || '', gw = fists ? 1 : 0.8, ay = FEET.ready[0][1];
+  for (let i = 0; i < 2; i++) {
+    if (legs.includes(i ? 'R' : 'L')) continue;
+    const r = stance(i, gw), n = i ? 'R' : 'L';
+    POSE[CH['hip' + n] + 1] = r[2] - POSE[4];   // the foot keeps its own direction when the hips turn
+    legIK(POSE, i, [r[0], ay + FOOT[i][1], r[1] + FOOT[i][0]]);
+  }
+  // Anim.headLook: neck and head counter the trunk so the eyes stay on the target (the game does this after the clip)
+  const tP = POSE[3] + POSE[CH.spine] + POSE[CH.chest], tY = POSE[4] + POSE[CH.spine + 1] + POSE[CH.chest + 1], tR = POSE[5] + POSE[CH.spine + 2] + POSE[CH.chest + 2];
+  POSE[CH.neck] = -0.35 * tP; POSE[CH.neck + 1] = -0.4 * tY; POSE[CH.neck + 2] = -0.35 * tR;
+  POSE[CH.head] = 0.03 - 0.45 * tP; POSE[CH.head + 1] = -0.5 * tY; POSE[CH.head + 2] = -0.45 * tR;
   return POSE;
 }
+/* footwork: the lunge carries the body forward before the blow (speed lunge × 0.45 without a target, Actor.updateAttack),
+   the front foot steps with it (Anim lifts it on a new attack) and the back foot catches up after the impact */
+function footwork(s, t) {
+  if (s.L === undefined) lunges([s]);
+  const q1 = clamp(t / (s.hit * 1.15), 0, 1), q2 = clamp((t - s.hit) / Math.max(0.05, s.dur - s.hit), 0, 1);
+  const root = s.z0 + s.L * ease(clamp(t / s.hit, 0, 1)), front = s.z0 + s.L * ease(q1), back = s.z0 + s.L * ease(q2);
+  FOOT = [[front - root, s.L > 0.02 ? 0.035 * Math.sin(Math.PI * q1) : 0], [back - root, s.L > 0.02 ? 0.025 * Math.sin(Math.PI * q2) : 0]];
+  return root;
+}
+function lunges(list) { let z = 0; for (const s of list) { s.z0 = z; s.L = ((ATK[s.atk] || {}).lunge || 0) * 0.45 * s.hit; z += s.L; } }
 
 /* ---------- sequencer: one clip, or a whole combo with its pause ---------- */
 let seq = [], si = 0, st = 0, playing = true, speed = 1, current = null;
@@ -177,25 +202,25 @@ function stepOf(atk, clip, gear, label) {
 }
 function playClip(c, G, btn) {
   const gear = clipGear(c.clip, G);
-  seq = [stepOf(c.atk, c.clip, gear, c.clip)]; seq.after = REST; si = 0; st = 0; mark(btn); trail.length = 0;
+  seq = [stepOf(c.atk, c.clip, gear, c.clip)]; lunges(seq); seq.after = REST; si = 0; st = 0; mark(btn); trail.length = 0;
 }
 function playCombo(id, btn) {
   const C = COMBOS[id], gear = COMBO_GEAR[id] || 'heavy';
   seq = C.chain.map(a => stepOf(a, ATK[a].clip, gear, ATK[a].clip));
   seq.forEach(s => s.gap = GAP); seq[seq.length - 1].gap = PAUSE;
   const p = stepOf(C.pause, ATK[C.pause].clip, gear, ATK[C.pause].clip); p.pause = true; seq.push(p);
-  seq.after = REST * 2; si = 0; st = 0; mark(btn); trail.length = 0;
+  lunges(seq); seq.after = REST * 2; si = 0; st = 0; mark(btn); trail.length = 0;
 }
 function mark(btn) { document.querySelectorAll('aside button[aria-pressed]').forEach(b => b.setAttribute('aria-pressed', 'false')); if (btn) btn.setAttribute('aria-pressed', 'true'); }
 
 /* ---------- camera + drawing ---------- */
 const cv = document.getElementById('cv'), cx = cv.getContext('2d');
-const cam = { yaw: 0.75, pitch: 0.22, dist: 4.1, ty: 0.85 };
+const cam = { yaw: 0.75, pitch: 0.22, dist: 4.1, ty: 0.85, tz: 0 };
 const CAMS = { front: [0, 0.15], side: [Math.PI / 2, 0.12], q: [0.75, 0.22] };
 let camGoal = null;
 function project(p) {
   const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
-  const ex = sy * cp * cam.dist, ey = cam.ty + sp * cam.dist, ez = cy * cp * cam.dist;
+  const ex = sy * cp * cam.dist, ey = cam.ty + sp * cam.dist, ez = cam.tz + cy * cp * cam.dist;
   const dx = p[0] - ex, dy = p[1] - ey, dz = p[2] - ez;
   // camera basis: forward toward the target, right, up
   const fx = -sy * cp, fy = -sp, fz = -cy * cp, rx = cy, rz = -sy, ux = -fy * rz, uy = rz * fx - rx * fz, uz = fy * rx;
@@ -218,13 +243,16 @@ function draw(dt) {
   const css = getComputedStyle(document.documentElement), col = n => css.getPropertyValue(n).trim();
   // ground
   cx.lineWidth = 1; cx.strokeStyle = col('--line');
-  for (let i = -4; i <= 4; i++) { const a = project([i * 0.5, 0, -2]), b = project([i * 0.5, 0, 2]), c = project([-2, 0, i * 0.5]), d = project([2, 0, i * 0.5]); cx.beginPath(); cx.moveTo(a[0], a[1]); cx.lineTo(b[0], b[1]); cx.moveTo(c[0], c[1]); cx.lineTo(d[0], d[1]); cx.stroke(); }
+  const gz = Math.round(cam.tz * 2) / 2;
+  for (let i = -4; i <= 4; i++) { const a = project([i * 0.5, 0, gz - 2]), b = project([i * 0.5, 0, gz + 2]), c = project([-2, 0, gz + i * 0.5]), d = project([2, 0, gz + i * 0.5]); cx.beginPath(); cx.moveTo(a[0], a[1]); cx.lineTo(b[0], b[1]); cx.moveTo(c[0], c[1]); cx.lineTo(d[0], d[1]); cx.stroke(); }
   const step = seq[si] || null, inMove = step && st <= step.dur;
   const gear = step ? step.gear : 'heavy';
   let u = 0, yaw = 0;
   if (inMove) { u = warpU(clamp(st / step.dur, 0, 1), step.hit / step.dur, CLIPS2[step.clip].hitU); if (step.spin) yaw = -clamp((st - step.hit * 0.3) / (step.dur * 0.7), 0, 1) * TAU; }
+  const rz = step ? footwork(step, Math.min(st, step.dur)) : (FOOT = [[0, 0], [0, 0]], 0);
+  cam.tz += (rz - cam.tz) * Math.min(1, dt * 6);
   const P = inMove ? poseAt(step.clip, u, gear) : poseAt(null, 0, gear);
-  fk(P, yaw);
+  fk(P, yaw, rz);
   // shadow
   const hp = pos(BI.hips), sh = project([hp[0], 0, hp[2]]);
   cx.fillStyle = 'rgba(0,0,0,0.35)'; cx.beginPath(); cx.ellipse(sh[0], sh[1], 0.38 * sh[3], 0.12 * sh[3], 0, 0, TAU); cx.fill();

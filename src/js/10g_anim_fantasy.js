@@ -43,7 +43,7 @@ const FANTASY_CLIPS = {
     [1, {}]] },
   // coup remontant (marteau) : l'arme part basse à gauche et monte haut à droite
   upswing: { hitU: 0.5, cat: 'heavy', grip2: 0.16, keys: [[0, {}],
-    [0.3, { shR: [-0.2, 0.7, -0.1], elR: [-0.4], shL: [-0.3, 0.4, 0.2], elL: [-0.5], chest: [0.25, 0.5, -0.05], spine: [0.4, 0.25, 0], hips: [0.08, 0.3, 0], P: [0, -0.2, -0.02] }],
+    [0.3, { haR: [-0.45], shR: [-0.2, 0.7, -0.1], elR: [-0.4], shL: [-0.3, 0.4, 0.2], elL: [-0.5], chest: [0.25, 0.5, -0.05], spine: [0.4, 0.25, 0], hips: [0.08, 0.3, 0], P: [0, -0.2, -0.02] }],
     [0.5, { shR: [-2.2, -0.4, -0.5], elR: [-0.3], shL: [-2.0, -0.7, 0.1], elL: [-0.4], chest: [-0.1, -0.5, 0.05], spine: [-0.15, -0.25, 0], hips: [0, -0.3, 0], head: [-0.2], P: [0, 0.02, 0.07] }],
     [0.7, { shR: [-2.3, -0.5, -0.55], elR: [-0.35], shL: [-2.1, -0.75, 0.1], elL: [-0.45], chest: [-0.1, -0.55, 0.05], spine: [-0.15, -0.27, 0], hips: [0, -0.32, 0], P: [0, 0.02, 0.06] }],
     [1, {}]] },
@@ -139,8 +139,8 @@ const FANTASY_CLIPS = {
   // diagonale à deux mains, de haut à droite vers bas à gauche
   greatDiag: { hitU: 0.55, cat: 'greatsword', grip2: 0.18, keys: [[0, {}],
     [0.35, { shR: [-2.7, -0.5, -0.5], elR: [-1.4], shL: [-2.5, -0.9, 0.0], elL: [-1.5], chest: [-0.05, -0.5, 0.05], spine: [-0.1, -0.25, 0], hips: [0, -0.3, 0], P: [0, 0, -0.04] }],
-    [0.55, { shR: [-0.9, 0.6, -0.1], elR: [-0.2], shL: [-0.9, 0.1, 0.1], elL: [-0.4], chest: [0.18, 0.6, -0.08], spine: [0.3, 0.3, -0.04], hips: [0.1, 0.35, 0], P: [0, -0.14, 0.1] }],
-    [0.74, { shR: [-0.6, 0.9, -0.1], elR: [-0.3], shL: [-0.6, 0.5, 0.1], elL: [-0.5], chest: [0.2, 0.75, -0.08], spine: [0.32, 0.35, -0.04], hips: [0.1, 0.4, 0], P: [0, -0.15, 0.09] }],
+    [0.55, { haR: [-0.45], shR: [-0.9, 0.6, -0.1], elR: [-0.2], shL: [-0.9, 0.1, 0.1], elL: [-0.4], chest: [0.18, 0.6, -0.08], spine: [0.3, 0.3, -0.04], hips: [0.1, 0.35, 0], P: [0, -0.14, 0.1] }],
+    [0.74, { haR: [-0.5], shR: [-0.6, 0.9, -0.1], elR: [-0.3], shL: [-0.6, 0.5, 0.1], elL: [-0.5], chest: [0.2, 0.75, -0.08], spine: [0.32, 0.35, -0.04], hips: [0.1, 0.4, 0], P: [0, -0.15, 0.09] }],
     [1, {}]] },
   // large revers horizontal à deux mains
   greatWide: { hitU: 0.52, cat: 'greatsword', grip2: 0.18, keys: [[0, {}],
@@ -227,9 +227,9 @@ function fantasyGrip(C, u, O) {
    · articulations en cascade : hanches, buste, épaule, coude puis poignet partent les uns après les autres
      et la tête suit en retard (fantasyEval, à l'évaluation). Le poids de l'arme règle chaque effet. */
 const STYLE = {
-  fists: { coil: 0.08, over: 0.08, drag: 0.8 }, heavy: { coil: 0.12, over: 0.14, drag: 1.3 }, dagger: { coil: 0.05, over: 0.06, drag: 0.6 },
-  sword: { coil: 0.08, over: 0.1, drag: 1 }, greatsword: { coil: 0.12, over: 0.14, drag: 1.3 }, staff: { coil: 0.08, over: 0.1, drag: 1 },
-  scepter: { coil: 0.06, over: 0.08, drag: 0.8 }, shield: { coil: 0.06, over: 0.06, drag: 0.8 }, fate: { coil: 0.1, over: 0.1, drag: 1 }
+  fists: { coil: 0.08, over: 0.08, drag: 0.8, body: 1 }, heavy: { coil: 0.12, over: 0.14, drag: 1.3, body: 1.3 }, dagger: { coil: 0.05, over: 0.06, drag: 0.6, body: 0.8 },
+  sword: { coil: 0.08, over: 0.1, drag: 1, body: 1 }, greatsword: { coil: 0.12, over: 0.14, drag: 1.3, body: 1.3 }, staff: { coil: 0.08, over: 0.1, drag: 1, body: 1.1 },
+  scepter: { coil: 0.06, over: 0.08, drag: 0.8, body: 0.8 }, shield: { coil: 0.06, over: 0.06, drag: 0.8, body: 1 }, fate: { coil: 0.1, over: 0.1, drag: 1, body: 0.6 }
 };
 // how far ahead (-) or behind (+) of the clip each joint moves, in clip time, before the weight factor
 const LEAD = { P: -0.045, hips: -0.05, spine: -0.035, chest: -0.02, head: 0.035, elL: 0.015, elR: 0.015, haL: 0.03, haR: 0.03 };
@@ -250,7 +250,7 @@ function mixKey(A, B, s) {
 const isRest = k => k === 'S' || Object.keys(k).length === 0;
 function stylize(def) {
   const S = STYLE[def.cat] || STYLE.sword, keys = def.keys.map(k => [k[0], k[1]]), h = keys.findIndex(k => k[0] === def.hitU);
-  if (h < 1) return Object.assign({}, def, { drag: S.drag });
+  if (h < 1) return Object.assign({}, def, { drag: S.drag, body: S.body });
   const W = keys[h - 1], H = keys[h], F = keys[h + 1], out = keys.slice(0, h - 1);
   out.push(W);
   const C = isRest(W[1]) ? W : [W[0] + (H[0] - W[0]) * 0.5, mixKey(W[1], H[1], -S.coil)];   // coil: slow start, late whip
@@ -263,7 +263,7 @@ function stylize(def) {
     out.push([F[0], def.ground ? F[1] : Object.assign({}, F[1], mixKey(H[1], F[1], 1 + S.over))]); // overshoot past the follow pose (not into the ground)
     out.push(...keys.slice(h + 2));
   } else out.push(...keys.slice(h + 1));
-  return Object.assign({}, def, { keys: out, drag: def.ground ? S.drag * 0.4 : S.drag });
+  return Object.assign({}, def, { keys: out, drag: def.ground ? S.drag * 0.4 : S.drag, body: S.body, offArm: !def.grip2 && ['sword', 'scepter', 'heavy'].includes(def.cat) });
 }
 function laggedClip(def) {
   const C = makeClip(def);
@@ -282,6 +282,22 @@ function fantasyEval(C, u, B, O, w = 1) {
     const full = c.add ? B[c.idx] + v : v;
     O[c.idx] = w >= 1 ? full : B[c.idx] + (c.idx < NANG ? wrapAngle(full - B[c.idx]) : full - B[c.idx]) * w;
   }
+}
+/* ---------- travail du corps ----------
+   Ce que les poses clés ne disent pas et qu'un corps fait de lui-même pendant un coup, calculé à partir de la rotation
+   du tronc (hanches + dos + buste) que le clip vient de produire :
+   · transfert du poids : le bassin glisse vers la jambe qui reçoit le coup ;
+   · le buste s'incline dans le sens de la rotation au lieu de tourner tout droit comme un bloc ;
+   · le bras libre fait contrepoids (il part en arrière et se replie quand le corps tourne) ;
+   · ancrage à l'impact : le bassin plonge un peu et le dos se ramasse au moment du contact. */
+function bodyPass(C, u, B, O) {
+  const k = C.body || 1, dy = n => wrapAngle(O[CH[n] + 1] - B[CH[n] + 1]);
+  const tw = clamp(dy('hips') + 0.7 * dy('spine') + 0.5 * dy('chest'), -1.6, 1.6);
+  O[HX] += clamp(0.06 * tw, -0.07, 0.07) * k;
+  O[CH.spine + 2] -= 0.1 * tw * k; O[CH.chest + 2] -= 0.16 * tw * k;
+  if (C.offArm) { const a = Math.abs(tw); O[CH.shL] += 0.45 * tw * k; O[CH.shL + 2] += 0.25 * a * k; O[CH.elL] = Math.min(-0.05, O[CH.elL] - 0.35 * a * k); }
+  const g = Math.exp(-Math.pow((u - C.hitU) / 0.07, 2));
+  O[HY] -= 0.035 * g * k; O[CH.spine] += 0.06 * g * k;
 }
 for (const k in FANTASY_CLIPS) {
   const D = stylize(FANTASY_CLIPS[k]); CLIP_DEFS[k] = D; CLIPS2[k] = laggedClip(D);
@@ -349,7 +365,7 @@ const AnimFantasy = {
       const base = clipEval;
       clipEval = function (C, u, B, O, w) {
         if (!C.raw) return base(C, u, B, O, w);
-        if (AnimFantasy.style) fantasyEval(C, u, B, O, w); else base(C.raw, u, B, O, w);
+        if (AnimFantasy.style) { fantasyEval(C, u, B, O, w); bodyPass(C, clamp(u, 0, 1), B, O); } else base(C.raw, u, B, O, w);
         if (C.grip2) fantasyGrip(C, clamp(u, 0, 1), O);
       };
       clipEval.fantasy = true;
