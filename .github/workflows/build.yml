@@ -10,6 +10,10 @@ on:
         description: "Publier une version téléchargeable (page Releases du dépôt)"
         type: boolean
         default: false
+      preversion:
+        description: "La publier comme pré-version (version d'essai, pas la version recommandée)"
+        type: boolean
+        default: false
 
 jobs:
   android:
@@ -91,6 +95,7 @@ jobs:
         run: |
           set -euo pipefail
           VERSION=$(node -p "require('./package.json').version")
+          if [ "${{ inputs.preversion }}" = "true" ]; then VERSION="$VERSION-essai.${{ github.run_number }}"; fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           mkdir -p out
           cp dl/overflow-android/Overflow.apk out/Overflow.apk
@@ -122,4 +127,5 @@ jobs:
           target_commitish: ${{ github.sha }}
           body_path: notes.md
           files: out/*
-          make_latest: "true"
+          prerelease: ${{ inputs.preversion == true }}
+          make_latest: ${{ inputs.preversion != true }}
