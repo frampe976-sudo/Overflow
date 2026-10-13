@@ -296,13 +296,18 @@ const Combat = {
     if (best) hits.push(best);
     let any = false;
     const rip = att === Game.player && att.riposteT > 0; // the blow that follows a parry or a perfect dodge lands harder
+    if (!late) A.fk = Destin.dmgK(att, A); // talents, Destinée, Jugement, critiques (rolled once per blow)
+    const fm = att === Game.player ? att.fm : null, fk = A.fk || 1;
+    const ripK = rip ? 1.7 * (fm ? fm.rip : 1) : 1, kdFin = fm && fm.finKd && d.fin ? 1 : 0;
     for (const t of hits) {
-      const dmg = d.dmg * (att.dmgOut || 1) * (rip ? 1.7 : 1);
-      const r = t.takeHit(att, dmg, { kind: 'melee', knock: d.knock * (rip ? 1.5 : 1), kd: rip ? Math.max(d.kd || 0, 0.5) : d.kd || 0, poise: d.poise * (rip ? 1.6 : 1), lethal: d.lethal, heavy: d.dmg > 18 || rip, unblockable: d.aoe });
+      const dmg = d.dmg * (att.dmgOut || 1) * ripK * fk;
+      const r = t.takeHit(att, dmg, { kind: 'melee', knock: d.knock * (rip ? 1.5 : 1), kd: Math.max(rip ? Math.max(d.kd || 0, 0.5) : d.kd || 0, kdFin), poise: d.poise * (rip ? 1.6 : 1) * (fm ? fm.poise : 1), lethal: d.lethal, heavy: d.dmg > 18 || rip, unblockable: d.aoe });
       if (r) {
         any = true; A.connected = true;
         if (r === true && rip && t.team !== 'civ') { att.riposteT = 0; Game.award(50, t.pos, 'RIPOSTE', 'feat'); Game.hitstop(0.1); CamCtl.shake(0.4); Render.post.extraFlash = 0.05; }
         if (r === true) {
+          Destin.onHit(att, t, A);
+          if (A.crit && att === Game.player) HUD.pop(t.pos.x, t.pos.y + 2.3, t.pos.z, 'CRITIQUE', 'feat');
           Snd.play(d.snd === 'flesh' && t.app.robot ? 'clank' : d.snd || 'punch', t.pos, 0.9);
           const hx = (att.pos.x + t.pos.x) / 2, hz = (att.pos.z + t.pos.z) / 2;
           FX.hit(hx, t.pos.y + 1.2, hz, d.dmg > 18 ? 1.3 : 0.9);
@@ -313,6 +318,7 @@ const Combat = {
       }
     }
     if (d.aoe) { FX.shockwave(att.pos.x + att.fwdX() * 1.5, att.pos.y + 0.05, att.pos.z + att.fwdZ() * 1.5, d.range); CamCtl.shake(0.6); }
+    if (d.pause && !late && att === Game.player) { if (any) HUD.pop(att.pos.x, att.pos.y + 2.4, att.pos.z, 'COMBO À PAUSE', 'feat'); Destin.onFinisher(att, A); }
     return any;
   },
   // hitscan shot. returns {x,y,z, actor, car}

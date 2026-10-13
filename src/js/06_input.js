@@ -1,7 +1,7 @@
 /* =====================================================================
    INPUT — unified keyboard/mouse, gamepad, touch
    ===================================================================== */
-const ACTIONS = ['jump', 'punch', 'kick', 'action', 'block', 'dodge', 'aim', 'fire', 'sprint', 'reload', 'next', 'prev', 'holster', 'pause', 'map', 'siren', 'handbrake', 'lock', 'exit', 'nade', 'ping'];
+const ACTIONS = ['jump', 'punch', 'kick', 'action', 'block', 'dodge', 'aim', 'fire', 'sprint', 'reload', 'next', 'prev', 'holster', 'pause', 'map', 'siren', 'handbrake', 'lock', 'exit', 'nade', 'ping', 'fate'];
 const Input = {
   device: 'kbm', padType: 'xbox', azerty: false, layoutMap: null,
   keys: {}, mouseBtn: [false, false, false], mdx: 0, mdy: 0, wheel: 0, locked: false, lockWanted: false,
@@ -145,6 +145,7 @@ const Input = {
     H.prev = this.pb(14);
     H.holster = this.k('KeyX');
     H.nade = this.k('KeyG') || (!C.car && this.pb(13)) || tb('nade');
+    H.fate = this.k('KeyV') || (this.pb(4) && this.pb(5)) || tb('fate'); // Destin : Jugement, puis Dénouement
     H.ping = this.k('KeyT') || tb('ping') || padPing; // multiplayer: « Ici ! » for the partners
     H.pause = this.k('Escape', 'KeyP') || this.pb(9) || tb('pause');
     H.map = this.k('KeyM', 'Semicolon', 'Tab') || this.pb(8) || tb('map');
@@ -215,6 +216,8 @@ const Input = {
   moveKeys() { return this.azerty ? 'ZQSD' : 'WASD'; },
   // glyph html for an action on the active device
   glyph(action) { return this.glyphFor(this.device, action); },
+  // the Reckoning has no single button on a pad (LB + RB together), so it gets its own label
+  glyphFate(d = this.device) { if (d === 'pad') return this.glyphFor('pad', 'block') + ' + ' + this.glyphFor('pad', 'dodge'); if (d === 'touch') return '<span class="tg">Destin</span>'; return `<kbd>${this.keyLabel('KeyV')}</kbd>`; },
   glyphFor(d, action) {
     if (d === 'pad') {
       const ps = this.padType === 'ps';

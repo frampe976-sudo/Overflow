@@ -4,13 +4,14 @@
    ===================================================================== */
 const Menus = {
   cur: null, stack: [], items: [], fi: 0, selCase: -1, ctab: null,
-  screens: ['scr-loading', 'scr-title', 'scr-missions', 'scr-multi', 'scr-options', 'scr-controls', 'scr-pause', 'scr-map', 'scr-result', 'scr-nogl'],
+  screens: ['scr-loading', 'scr-title', 'scr-missions', 'scr-multi', 'scr-options', 'scr-controls', 'scr-pause', 'scr-map', 'scr-result', 'scr-nogl', 'scr-destin'],
   init() {
     document.querySelectorAll('#menu-title .mi').forEach(b => b.addEventListener('click', () => this.titleAct(b.dataset.go)));
     document.querySelectorAll('#menu-pause .mi').forEach(b => b.addEventListener('click', () => this.pauseAct(b.dataset.go)));
     document.querySelectorAll('[data-act="back"]').forEach(b => b.addEventListener('click', () => this.back()));
     $('ctabs').querySelectorAll('button').forEach(b => b.addEventListener('click', () => this.renderControls(b.dataset.tab)));
     this.mpInit();
+    $('destin-reset').addEventListener('click', () => { Destin.reset(); this.renderDestin(); });
     document.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' && this.cur) { const t = e.target.closest && e.target.closest('.mi,.case,.btn,.opt,.ctabs button'); if (t && this.items.indexOf(t) >= 0) this.focus(this.items.indexOf(t), true); } });
     this.updateDevices();
   },
@@ -32,6 +33,7 @@ const Menus = {
     if (id === 'scr-options') this.renderOptions();
     if (id === 'scr-controls') this.renderControls(this.ctab || (Input.device === 'touch' ? 'touch' : Input.device));
     if (id === 'scr-pause') this.renderPause();
+    if (id === 'scr-destin') this.renderDestin();
     if (id === 'scr-multi') { this.collect(root); this.mpRender(); HUD.updateTouchVisibility(); return; }
     if (id === 'scr-title' || id === 'scr-pause') requestAnimationFrame(() => this.fitBrand());
     if (id === 'scr-title') { const t = $('train-sub'); if (t) t.textContent = Save.data.trained ? 'Terminé · à refaire quand vous voulez' : 'Toutes les actions, pas à pas'; this.renderContinue(); }
@@ -101,6 +103,7 @@ const Menus = {
     else if (go === 'patrol') Game.startMission(PATROL);
     else if (go === 'multi') this.mpOpen();
     else if (go === 'controls') this.show('scr-controls');
+    else if (go === 'destin') this.show('scr-destin');
     else if (go === 'options') this.show('scr-options');
     else if (go === 'fullscreen') this.toggleFullscreen();
   },
@@ -194,22 +197,40 @@ const Menus = {
     else { const i = d.vals.findIndex(v => String(v[0]) === String(o[d.k])); const n = (i + (toggle ? 1 : dir) + d.vals.length) % d.vals.length; this.setOpt(d, String(d.vals[n][0])); }
     Snd.play('ui');
   },
+  /* ---------- Destin: talents and Destinies ---------- */
+  renderDestin() {
+    const free = Destin.free(), cur = Destin.destiny();
+    $('destin-pts').textContent = `${free} point${free > 1 ? 's' : ''} à répartir · ${Destin.points()} au total (3 de plus à chaque grade)`;
+    $('trees').innerHTML = TREES.map(T => `<div class="tree" style="--tc:${T.col}"><h3>${T.name}<b>${Destin.spent(T.id)}</b></h3>` + T.talents.map(t => {
+      const r = Destin.rank(t.id), locked = Destin.spent(T.id) < (t.req || 0);
+      return `<button class="btn tal${locked ? ' locked' : ''}${r >= 3 ? ' max' : ''}" data-tal="${t.id}"><span class="pips">${'●'.repeat(r)}${'○'.repeat(3 - r)}</span><b>${t.name}</b><small>${t.desc(Math.max(1, r))}${locked ? ` · ${t.req} points en ${T.name} requis` : ''}</small></button>`;
+    }).join('') + '</div>').join('');
+    $('dcards').innerHTML = DESTINIES.map(D => {
+      const ok = Destin.unlocked(D), need = Object.keys(D.need).map(k => `${D.need[k]} ${TREES.find(T => T.id === k).name}`).join(' + ');
+      return `<button class="btn dcard${D === cur ? ' sel' : ''}${ok ? '' : ' locked'}" data-dest="${D.id}"><b>${D.name}</b><small>${D.desc}${ok ? '' : ` · requis : ${need}`}</small></button>`;
+    }).join('');
+    const keep = this.items[this.fi], kt = keep && (keep.dataset.tal || keep.dataset.dest);
+    $('trees').querySelectorAll('[data-tal]').forEach(b => b.addEventListener('click', () => { if (Destin.buy(b.dataset.tal)) Snd.play('ok'); else Snd.play('back'); this.renderDestin(); }));
+    $('dcards').querySelectorAll('[data-dest]').forEach(b => b.addEventListener('click', () => { if (Destin.choose(b.dataset.dest)) Snd.play('ok'); else Snd.play('back'); this.renderDestin(); }));
+    // re-rendering rebuilds the buttons: keep the focus on the one that was used
+    this.collect($('scr-destin')); if (kt) { const i = this.items.findIndex(e => (e.dataset.tal || e.dataset.dest) === kt); if (i >= 0) this.focus(i, true); }
+  },
   /* ---------- controls ---------- */
   renderControls(tab) {
     this.ctab = tab; $('ctabs').querySelectorAll('button').forEach(b => b.classList.toggle('sel', b.dataset.tab === tab));
     const mv = Input.moveKeys(); const k = c => `<kbd>${c}</kbd>`;
     const T = {
-      kbm: [['À pied'], ['Se déplacer', k(mv)], ['Caméra', 'Souris (cliquez dans la vue)'], ['Sprint', k('Maj')], ['Sauter · s’agripper · escalader un grillage · franchir une voiture', k('Espace')], ['Roulade', k(Input.keyLabel('KeyC'))], ['Frapper (enchaînements)', '<kbd class="mouse">Clic G</kbd> ou ' + k(Input.keyLabel('KeyJ'))], ['Coup de pied', k(Input.keyLabel('KeyF'))], ['Parade · contre', '<kbd class="mouse">Clic D</kbd> ou ' + k(Input.keyLabel('KeyL'))], ['Interpeller · échelle · monter', k(Input.keyLabel('KeyE'))], ['Verrouiller une cible', k(Input.keyLabel('KeyQ')) + ' ou <kbd class="mouse">Clic molette</kbd>'], ['Changer de cible', 'Coup sec de souris'],
+      kbm: [['À pied'], ['Se déplacer', k(mv)], ['Caméra', 'Souris (cliquez dans la vue)'], ['Sprint', k('Maj')], ['Sauter · s’agripper · escalader un grillage · franchir une voiture', k('Espace')], ['Roulade', k(Input.keyLabel('KeyC'))], ['Frapper (enchaînements)', '<kbd class="mouse">Clic G</kbd> ou ' + k(Input.keyLabel('KeyJ'))], ['Coup de pied', k(Input.keyLabel('KeyF'))], ['Parade · contre', '<kbd class="mouse">Clic D</kbd> ou ' + k(Input.keyLabel('KeyL'))], ['Combo à pause : marquez un temps entre deux coups', 'Frapper, attendre, Frapper'], ['Destin : Jugement, puis Dénouement', Input.glyphFate('kbm')], ['Interpeller · échelle · monter', k(Input.keyLabel('KeyE'))], ['Verrouiller une cible', k(Input.keyLabel('KeyQ')) + ' ou <kbd class="mouse">Clic molette</kbd>'], ['Changer de cible', 'Coup sec de souris'],
         ['Armes'], ['Viser', '<kbd class="mouse">Clic D</kbd>'], ['Tirer', '<kbd class="mouse">Clic G</kbd>'], ['Recharger', k(Input.keyLabel('KeyR'))], ['Changer d’arme', '<kbd class="mouse">Molette</kbd> · 1 à 6'], ['Ranger l’arme', k(Input.keyLabel('KeyX'))], ['Grenade : maintenir pour viser, relâcher pour lancer (appui bref : vers la cible)', k(Input.keyLabel('KeyG'))],
         ['En voiture'], ['Accélérer · freiner', k(Input.keyLabel('KeyW')) + ' ' + k(Input.keyLabel('KeyS'))], ['Tourner', k(Input.keyLabel('KeyA')) + ' ' + k(Input.keyLabel('KeyD'))], ['Frein à main', k('Espace')], ['Tirer par la fenêtre (visée assistée)', '<kbd class="mouse">Clic G</kbd>'], ['Gyrophare · klaxon', k(Input.keyLabel('KeyH'))], ['Sortir', k(Input.keyLabel('KeyE'))],
         ['Général'], ['Carte', k(Input.keyLabel('KeyM')) + ' ou ' + k('Tab')], ['Pause', k('Échap') + ' ou ' + k('P')],
         ['Brigade de nuit (multijoueur)'], ['Signaler « Ici ! »', k(Input.keyLabel('KeyT')) + ' : ce que vise la caméra (un ennemi, un endroit)'], ['Réparer un partenaire', k(Input.keyLabel('KeyE')) + ' près de lui quand il est à terre'], ['Monter en passager', k(Input.keyLabel('KeyE')) + ' près de sa voiture arrêtée · tir par la fenêtre']],
-      pad: [['À pied'], ['Se déplacer · sprint', 'Stick gauche · ' + Input.glyphFor('pad', 'sprint')], ['Caméra', 'Stick droit'], ['Verrouiller · changer de cible', 'R3 · coup sec du stick droit'], ['Sauter · s’agripper · escalader un grillage · franchir une voiture', Input.glyphFor('pad', 'jump')], ['Frapper', Input.glyphFor('pad', 'punch')], ['Coup de pied', Input.glyphFor('pad', 'kick')], ['Interpeller · échelle · monter', Input.glyphFor('pad', 'action')], ['Parade · contre', Input.glyphFor('pad', 'block')], ['Roulade', Input.glyphFor('pad', 'dodge')],
+      pad: [['À pied'], ['Se déplacer · sprint', 'Stick gauche · ' + Input.glyphFor('pad', 'sprint')], ['Caméra', 'Stick droit'], ['Verrouiller · changer de cible', 'R3 · coup sec du stick droit'], ['Sauter · s’agripper · escalader un grillage · franchir une voiture', Input.glyphFor('pad', 'jump')], ['Frapper', Input.glyphFor('pad', 'punch')], ['Coup de pied', Input.glyphFor('pad', 'kick')], ['Interpeller · échelle · monter', Input.glyphFor('pad', 'action')], ['Parade · contre', Input.glyphFor('pad', 'block')], ['Roulade', Input.glyphFor('pad', 'dodge')], ['Destin : Jugement, puis Dénouement', Input.glyphFate('pad')],
         ['Armes'], ['Viser (verrouillage)', Input.glyphFor('pad', 'aim')], ['Tirer', Input.glyphFor('pad', 'fire')], ['Changer d’arme', '◀ ▶'], ['Recharger', '▲'], ['Grenade : maintenir pour viser, relâcher pour lancer', '▼'],
         ['En voiture'], ['Accélérer · freiner', Input.glyphFor('pad', 'gas') + ' · ' + Input.glyphFor('pad', 'brake')], ['Frein à main', Input.glyphFor('pad', 'handbrake')], ['Tirer par la fenêtre (visée assistée)', Input.glyphFor('pad', 'carfire')], ['Gyrophare · klaxon', Input.glyphFor('pad', 'siren')], ['Sortir', Input.glyphFor('pad', 'exit')],
         ['Général'], ['Carte', Input.glyphFor('pad', 'map')], ['Pause', Input.glyphFor('pad', 'pause')],
         ['Brigade de nuit (multijoueur)'], ['Signaler « Ici ! »', '▲ maintenu (un appui bref recharge toujours)'], ['Réparer un partenaire', Input.glyphFor('pad', 'action') + ' près de lui quand il est à terre'], ['Monter en passager', Input.glyphFor('pad', 'action') + ' près de sa voiture arrêtée']],
-      touch: [['À pied'], ['Se déplacer', 'Joystick : touchez n’importe où à gauche'], ['Caméra', 'Glissez sur la moitié droite'], ['Sprint', 'Bouton Sprint (bascule)'], ['Frapper · Pied · Saut', 'Boutons ronds à droite · face à un grillage, Saut devient Escalader ; le long d’une voiture, Franchir'], ['Action', 'Interpeller, grimper, monter : l’étiquette change selon le contexte'], ['Parade · Roulade', 'Petits boutons à gauche du groupe'], ['Cible', 'Verrouille l’ennemi le plus proche, touchez encore pour passer au suivant puis relâcher'], ['Tir', 'Remplace Frapper et Pied quand une arme à feu est en main · visée assistée'], ['Arme', 'Bouton en haut à droite : touchez pour changer d’arme ; une arme vide est rangée toute seule'], ['Grenade', 'Maintenez pour viser (la trajectoire s’affiche, glissez à droite pour ajuster), relâchez pour lancer ; un appui bref lance vers la cible'],
+      touch: [['À pied'], ['Se déplacer', 'Joystick : touchez n’importe où à gauche'], ['Caméra', 'Glissez sur la moitié droite'], ['Sprint', 'Bouton Sprint (bascule)'], ['Frapper · Pied · Saut', 'Boutons ronds à droite · face à un grillage, Saut devient Escalader ; le long d’une voiture, Franchir'], ['Action', 'Interpeller, grimper, monter : l’étiquette change selon le contexte'], ['Parade · Roulade', 'Petits boutons à gauche du groupe'], ['Destin', 'Bouton étoile, quand la jauge violette est pleine'], ['Cible', 'Verrouille l’ennemi le plus proche, touchez encore pour passer au suivant puis relâcher'], ['Tir', 'Remplace Frapper et Pied quand une arme à feu est en main · visée assistée'], ['Arme', 'Bouton en haut à droite : touchez pour changer d’arme ; une arme vide est rangée toute seule'], ['Grenade', 'Maintenez pour viser (la trajectoire s’affiche, glissez à droite pour ajuster), relâchez pour lancer ; un appui bref lance vers la cible'],
         ['En voiture'], ['Direction', 'Joystick gauche'], ['Gaz · Frein · Dérapage', 'Boutons à droite'], ['Sirène · Sortir', 'Petits boutons'], ['Tir', 'Bouton rouge en bas à gauche, s’il vous reste une arme chargée'], ['Général'], ['Carte · Pause', 'En haut à droite'], ['Brigade de nuit (multijoueur)'], ['Signaler « Ici ! »', 'Bouton épingle en haut à droite'], ['Réparer un partenaire', 'Action près de lui quand il est à terre'], ['Monter en passager', 'Action près de sa voiture arrêtée']]
     };
     $('ctable').innerHTML = T[tab].map(r => r.length === 1 ? `<div class="cgroup">${r[0]}</div>` : `<div class="crow"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('');
@@ -232,6 +253,7 @@ const Menus = {
     else if (go === 'retry') { Game.resume(); if (Game.mission && Game.def && Game.def.restartStep) Game.def.restartStep(Game.mission, Game); }
     else if (go === 'restart') { if (MP.on && MP.state === 'play') { if (MP.host) MP.endGame(); else Game.toMenu(); } else if (Game.def && Game.def.patrol) Game.missionComplete(); else Game.startMission(Game.def); }
     else if (go === 'map') this.show('scr-map');
+    else if (go === 'destin') this.show('scr-destin');
     else if (go === 'controls') this.show('scr-controls');
     else if (go === 'options') this.show('scr-options');
     else if (go === 'quit') Game.toMenu();

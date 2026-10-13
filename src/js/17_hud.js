@@ -4,7 +4,7 @@
 const HUD = {
   el: {}, radio: { q: [], cur: null, t: 0, shown: 0 }, hintT: 0, bigT: 0, lagHp: 1, mapImg: null, markers: {}, fpsT: 0, fpsN: 0,
   init() {
-    for (const id of ['hud', 'hpfill', 'hplag', 'hpbar', 'stfill', 'score', 'hudobj', 'objlabel', 'objtext', 'crime', 'crimeval', 'crimefill', 'crimetarget', 'timer', 'bossbar', 'bossname', 'bossfill', 'combo', 'radar', 'weapon', 'wname', 'wammo', 'markers', 'crosshair', 'hint', 'prompt', 'promptg', 'promptt', 'ringarc', 'radio', 'radiowho', 'radiotxt', 'toasts', 'bigmsg', 'big1', 'big2', 'fps', 'dmgdir', 'touch', 'tset-foot', 'tset-car', 'tb-fire', 'tb-action', 'tb-action-l', 'tb-sprint', 'tb-lock', 'threats', 'tb-weapon', 'tbw-name', 'tbw-ammo', 'tb-punch', 'tb-kick', 'tb-cfire', 'tb-cfire-l', 'area', 'nades', 'nadesn', 'nadewarn', 'tb-nade', 'tb-nade-n', 'tb-jump', 'tb-jump-l', 'pops', 'streak'])
+    for (const id of ['hud', 'hpfill', 'hplag', 'hpbar', 'stfill', 'score', 'hudobj', 'objlabel', 'objtext', 'crime', 'crimeval', 'crimefill', 'crimetarget', 'timer', 'bossbar', 'bossname', 'bossfill', 'combo', 'radar', 'weapon', 'wname', 'wammo', 'markers', 'crosshair', 'hint', 'prompt', 'promptg', 'promptt', 'ringarc', 'radio', 'radiowho', 'radiotxt', 'toasts', 'bigmsg', 'big1', 'big2', 'fps', 'dmgdir', 'touch', 'tset-foot', 'tset-car', 'tb-fire', 'tb-action', 'tb-action-l', 'tb-sprint', 'tb-lock', 'threats', 'tb-weapon', 'tbw-name', 'tbw-ammo', 'tb-punch', 'tb-kick', 'tb-cfire', 'tb-cfire-l', 'area', 'nades', 'nadesn', 'nadewarn', 'tb-nade', 'tb-nade-n', 'tb-jump', 'tb-jump-l', 'pops', 'streak', 'fatebar', 'fatefill', 'tb-fate'])
       this.el[id] = $(id);
     this.el.team = $('team'); this.el.cs2 = document.querySelector('#hud .cs2'); this.el.csb = document.querySelector('#hud .callsign b');
     this.ctx = this.el.radar.getContext('2d');
@@ -136,6 +136,11 @@ const HUD = {
     E.hpfill.style.transform = `scaleX(${hpk})`; E.hplag.style.transform = `scaleX(${this.lagHp})`; E.hpbar.classList.toggle('low', hpk < 0.3);
     const carK = P.state === 'car' && P.car ? clamp(P.car.hp / P.car.maxHp, 0, 1) : -1; E.stfill.parentNode.classList.toggle('carhp', carK >= 0); E.stfill.parentNode.classList.toggle('carfire', carK >= 0 && P.car.fireT > 0);
     E.stfill.style.transform = `scaleX(${carK >= 0 ? carK : clamp(P.stamina / P.maxStamina, 0, 1)})`; if (P.lowStamina !== this._tired) { this._tired = P.lowStamina; E.stfill.parentNode.classList.toggle('tired', !!P.lowStamina); }
+    // Fate gauge: fills with the blows, drains during the Reckoning; the touch button shows once it can be used
+    { const fk = clamp((P.fate || 0) / 100, 0, 1), on = P.reckT > 0, full = fk >= 1 && !on; E.fatefill.style.transform = `scaleX(${fk})`;
+      if (full !== this._fateFull) { this._fateFull = full; E.fatebar.classList.toggle('full', full); }
+      if (on !== this._fateOn) { this._fateOn = on; E.fatebar.classList.toggle('on', on); }
+      const tShow = (full || on) && P.state !== 'car'; if (E['tb-fate'].hidden === tShow) E['tb-fate'].hidden = !tShow; }
     Render.post.dmg = damp(Render.post.dmg, hpk < 0.3 ? 0.35 + Math.sin(Env.time * 5) * 0.08 : 0, 3, dt);
     { const sc = Math.max(0, Math.round(Game.score)); if (sc !== this._score) { if (this._score !== undefined && sc > this._score) { E.score.classList.remove('up'); void E.score.offsetWidth; E.score.classList.add('up'); clearTimeout(this._scT); this._scT = setTimeout(() => E.score.classList.remove('up'), 400); } this._score = sc; E.score.textContent = String(sc).padStart(5, '0'); } }
     this.updatePops(dt);
