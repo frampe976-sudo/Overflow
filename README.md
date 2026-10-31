@@ -25,8 +25,10 @@ L'APK n'a pas la même signature que l'ancien Overflow : désinstaller l'ancien 
 - `src/js/11b_destin.js` : combos, jauge de Destin, Jugement, talents et Destinées
 - `src/js/19d_recit.js` : moteur du récit (dialogues à choix, drapeaux, quêtes, codex, journal)
 - `src/js/19e_recit_data.js` : contenu du récit (personnages, dialogues, quêtes du chapitre I)
+- `src/js/19f_quetes_donnees.js` : quêtes écrites en données, « si … alors … » (inspiré d'Urban Chaos)
+- `src/js/19g_quetes_contenu.js` : quêtes et déclencheurs écrits en données
 - `docs/scenario.md` : le scénario complet (monde, factions, personnages, trame des cinq chapitres)
-- `tools/test-destin.js`, `tools/test-recit.js` : tests dans le vrai jeu (Chromium sans écran)
+- `tools/test-destin.js`, `tools/test-recit.js`, `tools/test-quetes.js` : tests dans le vrai jeu (Chromium sans écran)
 
 ## Destin (nouveau)
 - **Chaînes de combos par arme** : poings, batte, clé, couteau, bâton ont chacun leur enchaînement.
@@ -63,3 +65,13 @@ Menu titre → **La Cité engloutie**. Le joueur est Dix-Sept, un golem du Guet 
 - **Approbation** de Nadia et d'Okafor, **codex** (15 entrées), **journal** (touche `N` ou menu pause).
 - **Contenu jouable** : prologue *L'Éveil*, chapitre I *La Cloche engloutie*, trois quêtes secondaires, neuf personnages.
 - Mourir dans le récit vous ramène au Corps de garde, sans perdre la progression.
+
+## Quêtes en données (nouveau)
+Repris du système de missions d'Urban Chaos (code publié sous licence MIT par Mucky Foot / Mike Diskett) :
+une quête s'écrit avec des **conditions** et des **actions**, sans toucher au moteur.
+- Une étape : `{ text, tag, ou: 'cemetery', debut: [actions], quand: condition, alors: [actions] }`.
+  `{vaincus}/{total}` dans le texte affiche le décompte du groupe d'ennemis.
+- Des **déclencheurs** surveillent la ville hors des quêtes : `{ id, si, alors, apres, une_fois }`.
+- Conditions : `proche`, `drapeau`, `compteur`, `quete`, `groupe_vaincu`, `groupe_moitie`, `temps`, `aleatoire`, `tous`, `un_de`, `non`.
+- Actions : `ennemis`, `message`, `titre`, `drapeau`, `compteur`, `codex`, `approbation`, `xp`, `quete_debut`, `quete_etape`, `quete_fin`, `dialogue`, `sauvegarde`.
+- Exemple jouable : *Les Braseros des noyés*, après le prologue, en s'approchant des braseros de la plateforme.
