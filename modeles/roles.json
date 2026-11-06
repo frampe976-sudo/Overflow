@@ -1,0 +1,97 @@
+{
+ "pnj:anselme": {
+  "fichier": "anselme.glb",
+  "nom": "Anselme",
+  "triangles": 7000
+ },
+ "pnj:okafor": {
+  "fichier": "okafor.glb",
+  "nom": "Okafor",
+  "triangles": 7000
+ },
+ "pnj:fredo": {
+  "fichier": "fredo.glb",
+  "nom": "Fredo",
+  "triangles": 7000
+ },
+ "pnj:nadia": {
+  "fichier": "nadia.glb",
+  "nom": "Nadia",
+  "triangles": 7000
+ },
+ "pnj:petronille": {
+  "fichier": "petronille.glb",
+  "nom": "Petronille",
+  "triangles": 7000
+ },
+ "pnj:vasseur": {
+  "fichier": "vasseur.glb",
+  "nom": "Vasseur",
+  "triangles": 7000
+ },
+ "pnj:maelle": {
+  "fichier": "maelle.glb",
+  "nom": "Maelle",
+  "triangles": 7000
+ },
+ "pnj:bastien": {
+  "fichier": "bastien.glb",
+  "nom": "Bastien",
+  "triangles": 7000
+ },
+ "pnj:margot": {
+  "fichier": "margot.glb",
+  "nom": "Margot",
+  "triangles": 7000
+ },
+ "pnj:corentin": {
+  "fichier": "corentin.glb",
+  "nom": "Corentin",
+  "triangles": 7000
+ },
+ "apparence:thug": {
+  "fichier": "thug.glb",
+  "nom": "Brigand",
+  "triangles": 7000
+ },
+ "apparence:cultist": {
+  "fichier": "cultist.glb",
+  "nom": "Enfant de la Maree",
+  "triangles": 7000
+ },
+ "apparence:merc": {
+  "fichier": "merc.glb",
+  "nom": "Mercenaire",
+  "triangles": 7000
+ },
+ "apparence:forgeron": {
+  "fichier": "forgeron.glb",
+  "nom": "Forgeron",
+  "triangles": 7000
+ },
+ "apparence:thugBoss": {
+  "fichier": "thugBoss.glb",
+  "nom": "Chef de bande",
+  "triangles": 7000
+ },
+ "apparence:mercBoss": {
+  "fichier": "mercBoss.glb",
+  "nom": "Capitaine mercenaire",
+  "triangles": 7000
+ },
+ "apparence:colosse": {
+  "fichier": "colosse.glb",
+  "nom": "Colosse",
+  "triangles": 7000
+ },
+ "apparence:herald": {
+  "fichier": "herald.glb",
+  "nom": "Heraut de la Maree",
+  "triangles": 7000
+ },
+ "apparence:leviathan": {
+  "fichier": "leviathan.glb",
+  "nom": "Leviathan",
+  "triangles": 7000
+ }
+}

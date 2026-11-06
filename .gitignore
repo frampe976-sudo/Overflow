@@ -5,3 +5,4 @@ release/
 android/
 *.jks
 *.keystore
+modeles/*.glb
