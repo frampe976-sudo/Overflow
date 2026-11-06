@@ -20,3 +20,13 @@ Le modèle doit être un humanoïde debout, face à +Z (sinon `"tourner": 180`),
 le long du corps, sans compression Draco. S'il a un squelette (noms Mixamo, Unreal ou Blender) ses poids
 sont repris, sinon il est riggé automatiquement. On peut aussi importer un GLB directement en jeu :
 menu **Modèles 3D**.
+
+## Personnages Kiumbe 3D
+
+Les 10 PNJ du récit et 9 groupes d'ennemis sont faits avec **Kiumbe 3D** (le générateur de personnages
+d'ANDHIME, assets Quaternius CC0). Leurs réglages sont dans `kiumbe-personnages.json` : chaque entrée est
+un code Kiumbe (`params`) qu'on peut coller dans l'appli pour le retoucher. Les GLB (exportés en
+convention `mixamo`, sans animation : le jeu utilise les siennes) ne sont pas versionnés ; seule leur
+version allégée (7 000 triangles, textures 256 px, gzip) est livrée dans `src/js/10i_modeles_data.js`.
+Pour en changer un : exporter le nouveau GLB depuis Kiumbe 3D sous le même nom dans ce dossier, puis
+relancer `node tools/modeles.js`.

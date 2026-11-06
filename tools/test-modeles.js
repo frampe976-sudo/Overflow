@@ -58,7 +58,12 @@ const { humanoide } = require('./glb-test');
     P.startAttack('jab', null); T.step(10); T.render(); T.render();
     out.dessines = M3.stats().dessines;
     if (out.dessines < 2) out.bad.push('modèles non dessinés (' + out.dessines + ')');
-    // 5. retrait : retour à l'apparence d'origine
+    // 5. les personnages Kiumbe 3D livrés avec le jeu (src/js/10i_modeles_data.js) : un PNJ du récit les porte
+    await M3.attendre();
+    const n = __OF.Kit.civ('anselme', P.pos.x + 1.5, P.pos.z - 1.5, { mode: 'script', hp: 9999 }); n.storyId = 'anselme';
+    out.livres = M3.stats().modeles - 2;
+    if (out.livres > 0) { if (!M3.pour(n)) out.bad.push('le PNJ Anselme ne porte pas son modèle livré'); else follow(n, 'anselme'); }
+    // 6. retrait : retour à l'apparence d'origine
     M3.lier('apparence:thug', ''); if (M3.pour(e)) out.bad.push('le retrait ne rend pas l’apparence d’origine'); M3.lier('apparence:thug', 'test-skin');
     return out;
   }, glbs);
@@ -69,7 +74,7 @@ const { humanoide } = require('./glb-test');
   console.log('écran Modèles 3D : ' + (ui.ecran && ui.bouton ? 'présent' : 'ABSENT'));
   console.log('squelette : ' + JSON.stringify(res.info.skin));
   console.log('auto      : ' + JSON.stringify(res.info.auto));
-  console.log('allégé à 200 → ' + res.info.leger + ' triangles');
+  console.log('allégé à 200 → ' + res.info.leger + ' triangles · modèles livrés : ' + res.livres + (res.anselmeMain !== undefined ? ' (main d’Anselme ↔ os ' + res.anselmeMain + ' m)' : ''));
   console.log(`main gauche ↔ os : joueur ${res.joueurMain} m, brigand ${res.brigandMain} m · dessinés ${res.dessines}`);
   const ko = [...res.bad, ...errs, ...(ui.ecran && ui.bouton ? [] : ['écran absent'])];
   console.log(ko.length ? 'ÉCHECS :\n  ' + ko.join('\n  ') : 'aucune erreur');

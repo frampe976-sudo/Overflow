@@ -105,7 +105,7 @@ const Modeles3D = (() => {
     }
     return out;
   }
-  async function image(G, ti, cache) {
+  async function image(G, ti, cache, max = 512) {
     if (cache.has(ti)) return cache.get(ti);
     let r = null;
     try {
@@ -115,9 +115,14 @@ const Modeles3D = (() => {
       else if (I && I.uri) { const m = /^data:([^;]*);base64,(.*)$/.exec(I.uri); if (m) { bytes = b64bytes(m[2]); mime = mime || m[1]; } }
       if (bytes && typeof createImageBitmap !== 'undefined') {
         const bmp = await createImageBitmap(new Blob([bytes], { type: mime || 'image/png' }));
-        const k = Math.min(1, 512 / Math.max(bmp.width, bmp.height)), w = Math.max(1, Math.round(bmp.width * k)), h = Math.max(1, Math.round(bmp.height * k));
+        const k = Math.min(1, max / Math.max(bmp.width, bmp.height)), w = Math.max(1, Math.round(bmp.width * k)), h = Math.max(1, Math.round(bmp.height * k));
         const cv = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(w, h) : Object.assign(document.createElement('canvas'), { width: w, height: h });
         const cx = cv.getContext('2d'); cx.drawImage(bmp, 0, 0, w, h); r = { w, h, d: cx.getImageData(0, 0, w, h).data };
+        // la texture gardée par le jeu : 512 px au plus, en JPEG (PNG si elle a de la transparence)
+        let alpha = false; if (/png/.test(mime || '')) for (let q = 3; q < r.d.length; q += 4) if (r.d[q] < 250) { alpha = true; break; }
+        const type = alpha ? 'image/png' : 'image/jpeg';
+        const blob = cv.convertToBlob ? await cv.convertToBlob({ type, quality: 0.86 }) : await new Promise(ok => cv.toBlob(ok, type, 0.86));
+        r.enc = new Uint8Array(await blob.arrayBuffer()); r.mime = type;
       }
     } catch (e) { r = null; }
     cache.set(ti, r); return r;
@@ -177,8 +182,8 @@ const Modeles3D = (() => {
     });
     // un nœud sans os reconnu prend celui de son plus proche ancêtre reconnu
     const boneOf = i => { while (i >= 0) { if (nodeBone[i]) return nodeBone[i]; i = par[i]; } return null; };
-    const P = [], N = [], C = [], E = [], S = [], VJ = [], VW = [], FIX = [], I = [];
-    const imgs = new Map();
+    const P = [], N = [], C = [], E = [], S = [], VJ = [], VW = [], FIX = [], I = [], U = [], TX = [], DS = [];
+    const imgs = new Map(), texSlot = new Map(), textures = [];
     let nv = 0, nPrims = 0;
     for (let ni = 0; ni < nodes.length; ni++) {
       const nd = nodes[ni]; if (nd.mesh === undefined || !world[ni]) continue;
@@ -190,8 +195,11 @@ const Modeles3D = (() => {
         nPrims++;
         const pos = acces(G, A.POSITION), cnt = pos.length / 3, nor = A.NORMAL !== undefined ? acces(G, A.NORMAL) : null;
         const mat = (J.materials || [])[pr.material] || {}, pbr = mat.pbrMetallicRoughness || {}, bcf = pbr.baseColorFactor || [1, 1, 1, 1];
-        const bt = pbr.baseColorTexture, tex = bt ? await image(G, bt.index, imgs) : null, uvA = bt && A['TEXCOORD_' + (bt.texCoord || 0)];
+        const bt = pbr.baseColorTexture, tex = bt ? await image(G, bt.index, imgs, o.texture || 512) : null, uvA = bt && A['TEXCOORD_' + (bt.texCoord || 0)];
         const uv = tex && uvA !== undefined ? acces(G, uvA) : null;
+        // texture gardée telle quelle (dessinée par le GPU) ; sans elle, couleur par sommet
+        let ts = -1; if (uv && tex.enc) { if (!texSlot.has(bt.index)) { texSlot.set(bt.index, textures.length); textures.push({ mime: tex.mime, bytes: tex.enc }); } ts = texSlot.get(bt.index); }
+        const ds = mat.doubleSided ? 1 : 0;
         const colA = A.COLOR_0 !== undefined ? acces(G, A.COLOR_0) : null, cn = colA ? colA.length / cnt : 0;
         let em = mat.emissiveFactor || [0, 0, 0]; const es = mat.extensions && mat.extensions.KHR_materials_emissive_strength; if (es) em = em.map(v => v * (es.emissiveStrength || 1));
         const emv = Math.min(1, Math.max(em[0], em[1], em[2])), rough = pbr.roughnessFactor !== undefined ? pbr.roughnessFactor : 0.8;
@@ -205,7 +213,10 @@ const Modeles3D = (() => {
           P.push(p[0], p[1], p[2]); N.push(n[0], n[1], n[2]);
           let r = lin2srgb(bcf[0]), g = lin2srgb(bcf[1]), b = lin2srgb(bcf[2]);
           if (colA) { r *= lin2srgb(colA[k * cn]); g *= lin2srgb(colA[k * cn + 1]); b *= lin2srgb(colA[k * cn + 2]); }
-          if (uv) {
+          if (ts >= 0) { U.push(uv[k * 2], uv[k * 2 + 1]); TX.push(ts); }
+          else { U.push(0, 0); TX.push(-1); }
+          DS.push(ds);
+          if (uv && ts < 0) {
             let u = uv[k * 2] % 1, v = uv[k * 2 + 1] % 1; if (u < 0) u += 1; if (v < 0) v += 1;
             const q = ((Math.min(tex.h - 1, (v * tex.h) | 0) * tex.w) + Math.min(tex.w - 1, (u * tex.w) | 0)) * 4;
             r *= tex.d[q] / 255; g *= tex.d[q + 1] / 255; b *= tex.d[q + 2] / 255;
@@ -225,7 +236,7 @@ const Modeles3D = (() => {
       }
     }
     if (!nv || !I.length) throw new Error('aucun maillage triangulé dans ce fichier');
-    return { P: Float32Array.from(P), N: Float32Array.from(N), C: Float32Array.from(C), E: Float32Array.from(E), S: Float32Array.from(S), VJ: Uint8Array.from(VJ), VW: Float32Array.from(VW), FIX: Uint8Array.from(FIX), I: Uint32Array.from(I), nv, jointPos, nJoints, nPrims };
+    return { P: Float32Array.from(P), N: Float32Array.from(N), C: Float32Array.from(C), E: Float32Array.from(E), S: Float32Array.from(S), VJ: Uint8Array.from(VJ), VW: Float32Array.from(VW), FIX: Uint8Array.from(FIX), I: Uint32Array.from(I), U: Float32Array.from(U), TX: Int16Array.from(TX), DS: Uint8Array.from(DS), textures, nv, jointPos, nJoints, nPrims };
   }
 
   /* ---------------- mise à l'échelle : 1,80 m, pieds au sol, centré, face à +Z ---------------- */
@@ -281,7 +292,9 @@ const Modeles3D = (() => {
     for (let it = 0; it < 20; it++) {
       const map = new Map(), rep = new Int32Array(nv); let nc = 0;
       for (let k = 0; k < nv; k++) {
-        const key = ((Math.floor(P[k * 3] / cell + 512) * 1024 + Math.floor(P[k * 3 + 1] / cell + 64)) * 1024 + Math.floor(P[k * 3 + 2] / cell + 512)) * 32 + (D.FIX[k] ? D.VJ[k * 4] + 1 : 0);
+        let key = ((Math.floor(P[k * 3] / cell + 512) * 1024 + Math.floor(P[k * 3 + 1] / cell + 64)) * 1024 + Math.floor(P[k * 3 + 2] / cell + 512)) * 32 + (D.FIX[k] ? D.VJ[k * 4] + 1 : 0);
+        // les coutures de texture restent séparées : même texture et UV voisins seulement
+        if (D.TX[k] >= 0) key = key + '|' + D.TX[k] + '|' + Math.floor(D.U[k * 2] * 24) + '|' + Math.floor(D.U[k * 2 + 1] * 24);
         let c = map.get(key); if (c === undefined) { c = nc++; map.set(key, c); } rep[k] = c;
       }
       const tri = []; const seen = new Set();
@@ -293,15 +306,15 @@ const Modeles3D = (() => {
       if (tri.length / 3 <= cible) break;
       cell *= 1.22;
     }
-    const { rep, nc, tri } = best, O = { nv: nc, P: new Float32Array(nc * 3), N: new Float32Array(nc * 3), C: new Float32Array(nc * 3), E: new Float32Array(nc), S: new Float32Array(nc), VJ: new Uint8Array(nc * 4), VW: new Float32Array(nc * 4), FIX: new Uint8Array(nc), I: Uint32Array.from(tri) };
+    const { rep, nc, tri } = best, O = { nv: nc, U: new Float32Array(nc * 2), TX: new Int16Array(nc), DS: new Uint8Array(nc), P: new Float32Array(nc * 3), N: new Float32Array(nc * 3), C: new Float32Array(nc * 3), E: new Float32Array(nc), S: new Float32Array(nc), VJ: new Uint8Array(nc * 4), VW: new Float32Array(nc * 4), FIX: new Uint8Array(nc), I: Uint32Array.from(tri) };
     const cntv = new Float32Array(nc), W = new Float32Array(nc * NB);
     for (let k = 0; k < nv; k++) {
-      const c = rep[k]; cntv[c]++;
+      const c = rep[k]; cntv[c]++; O.U[c * 2] += D.U[k * 2]; O.U[c * 2 + 1] += D.U[k * 2 + 1]; O.TX[c] = D.TX[k]; O.DS[c] |= D.DS[k];
       for (let j = 0; j < 3; j++) { O.P[c * 3 + j] += P[k * 3 + j]; O.C[c * 3 + j] += D.C[k * 3 + j]; }
       O.E[c] += D.E[k]; O.S[c] += D.S[k]; if (D.FIX[k]) { O.FIX[c] = 1; for (let j = 0; j < 4; j++) W[c * NB + D.VJ[k * 4 + j]] += D.VW[k * 4 + j]; }
     }
     for (let c = 0; c < nc; c++) {
-      const q = cntv[c] || 1; for (let j = 0; j < 3; j++) { O.P[c * 3 + j] /= q; O.C[c * 3 + j] /= q; } O.E[c] /= q; O.S[c] /= q;
+      const q = cntv[c] || 1; O.U[c * 2] /= q; O.U[c * 2 + 1] /= q; for (let j = 0; j < 3; j++) { O.P[c * 3 + j] /= q; O.C[c * 3 + j] /= q; } O.E[c] /= q; O.S[c] /= q;
       if (O.FIX[c]) poidsDepuis(W, c, O);
     }
     return Object.assign(D, O);
@@ -407,7 +420,10 @@ const Modeles3D = (() => {
       const e1 = [P[b] - P[a], P[b + 1] - P[a + 1], P[b + 2] - P[a + 2]], e2 = [P[c] - P[a], P[c + 1] - P[a + 1], P[c + 2] - P[a + 2]], n = cross(e1, e2);
       for (const q of [a, b, c]) { N[q] += n[0]; N[q + 1] += n[1]; N[q + 2] += n[2]; }
     }
-    for (let k = 0; k < D.nv; k++) { const n = nrm([N[k * 3], N[k * 3 + 1], N[k * 3 + 2]]); N[k * 3] = n[0]; N[k * 3 + 1] = n[1]; N[k * 3 + 2] = n[2]; }
+    // les sommets dédoublés par une couture de texture partagent leur normale
+    const same = new Map(), key = k => Math.round(P[k * 3] * 1000) + ',' + Math.round(P[k * 3 + 1] * 1000) + ',' + Math.round(P[k * 3 + 2] * 1000);
+    for (let k = 0; k < D.nv; k++) { const q = key(k), a = same.get(q); if (a) { a[0] += N[k * 3]; a[1] += N[k * 3 + 1]; a[2] += N[k * 3 + 2]; } else same.set(q, [N[k * 3], N[k * 3 + 1], N[k * 3 + 2]]); }
+    for (let k = 0; k < D.nv; k++) { const n = nrm(same.get(key(k))); N[k * 3] = n[0]; N[k * 3 + 1] = n[1]; N[k * 3 + 2] = n[2]; }
     return N;
   }
 
@@ -428,16 +444,33 @@ const Modeles3D = (() => {
       for (let j = 0; j < 4; j++) { const w = Math.round(D.VW[k * 4 + j] / s * 255); Wb[k * 4 + j] = w; t += w; }
       Wb[k * 4] += 255 - t;
     }
-    const info = Object.assign(brut, { final: D.I.length / 3, rig: D.nConnus >= 8 ? 'squelette du modèle (' + D.nConnus + ' os reconnus)' : 'automatique', pose: D.pose, taille: D.taille.map(v => +v.toFixed(2)) });
-    return { nom: o.nom || 'modèle', info, nv: D.nv, pos: D.P, nrm: N, m4: M, j: D.VJ, w: Wb, idx: D.nv > 65535 ? D.I : Uint16Array.from(D.I), pal, inv, jp: J };
+    // triangles rangés par texture : un appel de dessin par texture
+    const tris = []; for (let t = 0; t < D.I.length; t += 3) tris.push(t);
+    tris.sort((a, b) => D.TX[D.I[a]] - D.TX[D.I[b]]);
+    const I2 = new Uint32Array(D.I.length), groupes = [];
+    tris.forEach((t, n) => {
+      const tx = D.TX[D.I[t]], g = groupes[groupes.length - 1];
+      if (!g || g.tex !== tx) groupes.push({ tex: tx, start: n * 3, count: 0 });
+      groupes[groupes.length - 1].count += 3; I2[n * 3] = D.I[t]; I2[n * 3 + 1] = D.I[t + 1]; I2[n * 3 + 2] = D.I[t + 2];
+    });
+    D.I = I2;
+    let ds = 0; for (let k = 0; k < D.nv; k++) ds |= D.DS[k];
+    const info = Object.assign(brut, { textures: D.textures.length, final: D.I.length / 3, rig: D.nConnus >= 8 ? 'squelette du modèle (' + D.nConnus + ' os reconnus)' : 'automatique', pose: D.pose, taille: D.taille.map(v => +v.toFixed(2)) });
+    return { nom: o.nom || 'modèle', info, nv: D.nv, pos: D.P, nrm: N, m4: M, j: D.VJ, w: Wb, idx: D.nv > 65535 ? D.I : Uint16Array.from(D.I), pal, inv, jp: J, uv: D.U, groupes, textures: D.textures, deuxFaces: !!ds };
   }
 
   /* ---------------- format compact (stockage sur l'appareil, modèles embarqués) ---------------- */
   function emballer(m) {
-    const head = JSON.stringify({ v: 1, nom: m.nom, info: m.info, nv: m.nv, ni: m.idx.length, i32: m.idx instanceof Uint32Array, pal: Array.from(m.pal), inv: Array.from(m.inv) });
-    let hb = new TextEncoder().encode(head); const pad = (4 - (hb.length + 8) % 4) % 4;
+    const tx = m.textures || [];
+    const head0 = { v: 3, nom: m.nom, info: m.info, nv: m.nv, ni: m.idx.length, i32: m.idx instanceof Uint32Array, pal: Array.from(m.pal), inv: Array.from(m.inv), groupes: m.groupes, deuxFaces: m.deuxFaces, tex: tx.map(t => ({ mime: t.mime, n: t.bytes.length })) };
     const nrm8 = new Int8Array(m.nv * 3); for (let k = 0; k < m.nv * 3; k++) nrm8[k] = clamp(Math.round(m.nrm[k] * 127), -127, 127);
-    const parts = [new Uint8Array(m.pos.buffer, m.pos.byteOffset, m.pos.byteLength), new Uint8Array(nrm8.buffer), m.m4, m.j, m.w, new Uint8Array(m.idx.buffer, m.idx.byteOffset, m.idx.byteLength)];
+    // positions et UV sur 16 bits, rapportées à leur boîte (1/20 de mm près pour un personnage)
+    const q16 = (a, n) => { const mn = [], mx = []; for (let c = 0; c < n; c++) { mn[c] = 1e9; mx[c] = -1e9; } for (let k = 0; k < a.length; k++) { const c = k % n; if (a[k] < mn[c]) mn[c] = a[k]; if (a[k] > mx[c]) mx[c] = a[k]; }
+      const o = new Uint16Array(a.length); for (let k = 0; k < a.length; k++) { const c = k % n, r = mx[c] - mn[c] || 1; o[k] = Math.round((a[k] - mn[c]) / r * 65535); } return { o, mn, mx }; };
+    const qp = q16(m.pos, 3), qu = q16(m.uv, 2);
+    head0.qp = [qp.mn, qp.mx]; head0.qu = [qu.mn, qu.mx];
+    let hb = new TextEncoder().encode(JSON.stringify(head0)); const pad = (4 - (hb.length + 8) % 4) % 4;
+    const parts = [new Uint8Array(qp.o.buffer), new Uint8Array(nrm8.buffer), m.m4, m.j, m.w, new Uint8Array(m.idx.buffer, m.idx.byteOffset, m.idx.byteLength), new Uint8Array(qu.o.buffer), ...tx.map(t => t.bytes)];
     let size = 8 + hb.length + pad; const offs = []; for (const p of parts) { size = (size + 3) & ~3; offs.push(size); size += p.length; }
     const out = new Uint8Array(size), dv = new DataView(out.buffer);
     out.set([0x4F, 0x46, 0x4D, 0x31]); dv.setUint32(4, hb.length + pad, true); out.set(hb, 8); for (let i = 0; i < pad; i++) out[8 + hb.length + i] = 32;
@@ -449,9 +482,12 @@ const Modeles3D = (() => {
     if (dv.getUint32(0, true) !== 0x314D464F) throw new Error('données de modèle illisibles');
     const hl = dv.getUint32(4, true), H = JSON.parse(new TextDecoder().decode(u.subarray(8, 8 + hl)));
     let off = 8 + hl; const take = (Ctor, n, by) => { off = (off + 3) & ~3; const a = new Ctor(n); new Uint8Array(a.buffer).set(u.subarray(off, off + n * by)); off += n * by; return a; };
-    const pos = take(Float32Array, H.nv * 3, 4), n8 = take(Int8Array, H.nv * 3, 1), m4 = take(Uint8Array, H.nv * 4, 1), j = take(Uint8Array, H.nv * 4, 1), w = take(Uint8Array, H.nv * 4, 1);
+    const unq = (q, n, mn, mx) => { const o = new Float32Array(q.length); for (let k = 0; k < q.length; k++) { const c = k % n; o[k] = mn[c] + q[k] / 65535 * (mx[c] - mn[c]); } return o; };
+    const pos = H.v >= 3 ? unq(take(Uint16Array, H.nv * 3, 2), 3, H.qp[0], H.qp[1]) : take(Float32Array, H.nv * 3, 4), n8 = take(Int8Array, H.nv * 3, 1), m4 = take(Uint8Array, H.nv * 4, 1), j = take(Uint8Array, H.nv * 4, 1), w = take(Uint8Array, H.nv * 4, 1);
     const idx = H.i32 ? take(Uint32Array, H.ni, 4) : take(Uint16Array, H.ni, 2), nrm = new Float32Array(H.nv * 3); for (let k = 0; k < nrm.length; k++) nrm[k] = n8[k] / 127;
-    return { nom: H.nom, info: H.info, nv: H.nv, pos, nrm, m4, j, w, idx, pal: Float32Array.from(H.pal), inv: Float32Array.from(H.inv) };
+    const uv = H.v >= 3 ? unq(take(Uint16Array, H.nv * 2, 2), 2, H.qu[0], H.qu[1]) : H.v >= 2 ? take(Float32Array, H.nv * 2, 4) : new Float32Array(H.nv * 2);
+    const textures = (H.tex || []).map(t => ({ mime: t.mime, bytes: take(Uint8Array, t.n, 1) }));
+    return { nom: H.nom, info: H.info, nv: H.nv, pos, nrm, m4, j, w, idx, uv, textures, groupes: H.groupes || [{ tex: -1, start: 0, count: H.ni }], deuxFaces: !!H.deuxFaces, pal: Float32Array.from(H.pal), inv: Float32Array.from(H.inv) };
   }
   function versB64(buf) { const u = new Uint8Array(buf); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); }
 
@@ -491,8 +527,10 @@ const Modeles3D = (() => {
   function embarquer(E) { emb = E || null; }
   function installerEmbarques() {
     if (!emb) return;
-    for (const id in emb.modeles || {}) { try { ajouter(id, deballer(b64bytes(emb.modeles[id].b64).buffer), 'embarque'); } catch (e) { console.warn('modèle embarqué illisible', id, e); } }
     rolesEmb = Object.assign({}, emb.roles || {});
+    // compressés en gzip par tools/modeles.js : décompressés en arrière-plan, l'apparence d'origine sert en attendant
+    const ouvrir = async E => { let b = b64bytes(E.b64); if (E.gz) b = new Uint8Array(await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer()); return b.buffer; };
+    for (const id in emb.modeles || {}) enCours.push(ouvrir(emb.modeles[id]).then(buf => ajouter(id, deballer(buf), 'embarque')).catch(e => console.warn('modèle embarqué illisible', id, e)));
   }
 
   /* ---------------- quel modèle pour quel personnage ---------------- */
@@ -522,14 +560,40 @@ const Modeles3D = (() => {
     for (const e of modeles.values()) if (!e.g) e.g = upload(e.m);
     return true;
   }
+  const enCours = [];
+  const attendre = () => Promise.all(enCours.splice(0));
   function upload(M) {
     const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
     const buf = (loc, arr, size, type, norm) => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, arr, gl.STATIC_DRAW); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, size, type, norm, 0, 0); };
-    buf(0, M.pos, 3, gl.FLOAT, false); buf(1, M.nrm, 3, gl.FLOAT, false); buf(2, M.m4, 4, gl.UNSIGNED_BYTE, false); buf(3, M.j, 4, gl.UNSIGNED_BYTE, false); buf(4, M.w, 4, gl.UNSIGNED_BYTE, true);
+    buf(6, M.uv || new Float32Array(M.nv * 2), 2, gl.FLOAT, false); buf(0, M.pos, 3, gl.FLOAT, false); buf(1, M.nrm, 3, gl.FLOAT, false); buf(2, M.m4, 4, gl.UNSIGNED_BYTE, false); buf(3, M.j, 4, gl.UNSIGNED_BYTE, false); buf(4, M.w, 4, gl.UNSIGNED_BYTE, true);
     const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, M.idx, gl.STATIC_DRAW);
     gl.bindBuffer(gl.ARRAY_BUFFER, instBuf); gl.enableVertexAttribArray(5); gl.vertexAttribPointer(5, 4, gl.FLOAT, false, 16, 0); gl.vertexAttribDivisor(5, 1);
     gl.bindVertexArray(null);
-    return { vao, count: M.idx.length, type: M.idx instanceof Uint32Array ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT, inst: [], off: 0 };
+    const g = { vao, count: M.idx.length, type: M.idx instanceof Uint32Array ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT, by: M.idx instanceof Uint32Array ? 4 : 2, inst: [], off: 0,
+      groupes: M.groupes || [{ tex: -1, start: 0, count: M.idx.length }], tex: (M.textures || []).map(() => null), deuxFaces: !!M.deuxFaces };
+    // textures décodées en arrière-plan (blanc en attendant)
+    (M.textures || []).forEach((t, i) => {
+      if (typeof createImageBitmap === 'undefined') return;
+      enCours.push(createImageBitmap(new Blob([t.bytes], { type: t.mime })).then(bmp => {
+        const T = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, T);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bmp); gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        g.tex[i] = T;
+      }).catch(() => { }));
+    });
+    return g;
+  }
+  // programme : la peau GPU de Folk, plus une texture par groupe de triangles (lumière du décor inchangée)
+  let prog = null, progLN = -1;
+  function programme() {
+    if (prog && progLN === Gfx.LN) return prog;
+    const vs = SH.skinVS.replace('layout(location=5) in vec4 iD;', 'layout(location=5) in vec4 iD;\nlayout(location=6) in vec2 aT;')
+      .replace(/vUv = vec4\(aM\.z[^;]*;/, 'vUv = vec4(aT, 0.0, 0.0);');
+    // pas de salissures de mur sur les personnages
+    const fs = SH.litFS.replace('base *= mix(1.0, contact * mix(0.74, 1.08, grime), wall);', '');
+    prog = Gfx.program(vs, fs, { LN: Gfx.LN, ATLAS: 1, NBONES: NB }); progLN = Gfx.LN;
+    return prog;
   }
   function begin() { rows = 0; for (const g of active) g.inst.length = 0; active.length = 0; frame++; }
   function ajouterInstance(a, W, e) {
@@ -557,10 +621,20 @@ const Modeles3D = (() => {
       if (n * 16 > instCap) { instCap = n * 32; gl.bufferData(gl.ARRAY_BUFFER, instCap, gl.DYNAMIC_DRAW); }
       gl.bufferSubData(gl.ARRAY_BUFFER, 0, instData, 0, n * 4);
     }
-    Gfx.use(Gfx.progs.skin); Render.litGlobals(null, vp, cam, clipY); Gfx.f4('uMat', 30, 0.35, 0.85, 0);
-    const u = Gfx.cur.u.uBones; if (u) { gl.activeTexture(gl.TEXTURE0 + Gfx.cur.tex); gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(u, Gfx.cur.tex++); }
+    let pr; try { pr = programme(); } catch (e) { pr = Gfx.progs.skin; }
+    Gfx.use(pr); Render.litGlobals(null, vp, cam, clipY); Gfx.f4('uMat', 30, 0.3, 0, 0); Gfx.f2('uCell', 1, 1);
+    Gfx.t('uBones', tex); Gfx.t('uEmap', Gfx.black); Gfx.t('uNoise', typeof Tex !== 'undefined' && Tex.noise || Gfx.black);
+    const lm = Gfx.cur.u.uMap, unit = Gfx.cur.tex++; if (lm) gl.uniform1i(lm, unit);
     gl.bindBuffer(gl.ARRAY_BUFFER, instBuf);
-    for (const g of active) { gl.bindVertexArray(g.vao); gl.vertexAttribPointer(5, 4, gl.FLOAT, false, 16, g.off); gl.drawElementsInstanced(gl.TRIANGLES, g.count, g.type, 0, g.inst.length / 3); }
+    for (const g of active) {
+      gl.bindVertexArray(g.vao); gl.vertexAttribPointer(5, 4, gl.FLOAT, false, 16, g.off);
+      if (g.deuxFaces) gl.disable(gl.CULL_FACE);
+      for (const q of g.groupes) {
+        gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, (q.tex >= 0 && g.tex[q.tex]) || Gfx.white);
+        gl.drawElementsInstanced(gl.TRIANGLES, q.count, g.type, q.start * g.by, g.inst.length / 3);
+      }
+      if (g.deuxFaces) gl.enable(gl.CULL_FACE);
+    }
     gl.bindVertexArray(null);
   }
   // position d'un sommet du modèle porté par un personnage (calculée comme le GPU : pour les tests)
@@ -581,8 +655,8 @@ const Modeles3D = (() => {
     CharRender.begin = function () { beginC.call(this); begin(); };
     CharRender.draw = function (a) {
       const e = gl && pour(a); if (!e) return draw.call(this, a);
-      // le modèle remplace le corps : on garde l'arme, les objets portés et le calcul des mains, de la tête, du canon
-      const A = a.app, look = A.look, parts = A.parts; A.look = null; A.parts = A.props || [];
+      // le modèle remplace le corps et ses accessoires d'origine (parapluie, sac) : on garde l'arme et le calcul des mains, de la tête, du canon
+      const A = a.app, look = A.look, parts = A.parts; A.look = null; A.parts = [];
       try { draw.call(this, a); } finally { A.look = look; A.parts = parts; }
       ajouterInstance(a, this.bw, e);
     };
@@ -663,7 +737,7 @@ const Modeles3D = (() => {
   }
 
   brancher();
-  const M3 = { traiter, importer, lier, oublier, role, pour, sommet, embarquer, emballer, deballer, versB64, osDuNom, modeles, get roles() { return roles; }, get statut() { return statut; }, stats: () => ({ modeles: modeles.size, dessines, version }), ajouterTraite: (id, m, src) => ajouter(id, deballer(emballer(m)), src || 'appareil') };
+  const M3 = { traiter, importer, lier, oublier, role, pour, sommet, embarquer, emballer, deballer, versB64, osDuNom, modeles, get roles() { return roles; }, get statut() { return statut; }, attendre, stats: () => ({ modeles: modeles.size, dessines, version }), ajouterTraite: (id, m, src) => ajouter(id, deballer(emballer(m)), src || 'appareil') };
   if (typeof window !== 'undefined') window.Modeles3D = M3;
   return M3;
 })();
